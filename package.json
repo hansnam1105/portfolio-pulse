@@ -1,0 +1,44 @@
+{
+  "type": "module",
+  "name": "portfolio-pulse",
+  "version": "1.0.0",
+  "description": "Personal Korean + US stock portfolio tracker with a daily Gemini-generated news briefing",
+  "license": "AGPL-3.0-or-later",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "test": "bun test tests",
+    "test:app": "bun test tests"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2",
+    "@types/node": "^26.4.1",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "drizzle-kit": "^0.31.10",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "decimal.js": "^10.4.3",
+    "drizzle-orm": "^0.45.2",
+    "exceljs": "^4.4.0",
+    "js-yaml": "^5.4.1",
+    "next": "^15.1.0",
+    "@neondatabase/serverless": "^0.10.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "server-only": "^0.0.1",
+    "zod": "^3.24.0"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "overrides": {
+    "hono": ">=4.12.25",
+    "esbuild": ">=0.28.1",
+    "postcss": ">=8.5.28"
+  }
+}

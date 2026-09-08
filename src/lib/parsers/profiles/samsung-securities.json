@@ -1,0 +1,15 @@
+{
+  "profileVersion": "samsung-securities/v1",
+  "format": "xlsx",
+  "sheet": { "match": "first" },
+  "headerRow": 1,
+  "dataStartRow": 2,
+  "columns": {
+    "종목명": { "field": "raw_label", "type": "string", "required": true },
+    "통화": { "field": "currency", "type": "enum", "values": ["KRW", "USD"], "required": true },
+    "평가금액": { "field": "market_value", "type": "decimal", "required": true },
+    "매수금액": { "field": "cost_basis_total", "type": "decimal", "required": true }
+  },
+  "marketFrom": "currency",
+  "absent": ["quantity", "price", "ticker_code", "isin", "as_of_date", "account_id"]
+}

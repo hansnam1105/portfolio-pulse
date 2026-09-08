@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>portfolio-pulse — Visual Alpha v1</title>
+<!--
+  portfolio-pulse — Visual Alpha v1
+  =================================
+  Design-communication artifact ONLY. This is not application code.
+
+  - Self-contained: no external network requests, no CDN, no framework, no build step.
+  - All colour values in :root are transcribed from tokens.json (semantic layer resolved
+    to its primitive values). No colour appears here that is not in tokens.json.
+  - ALL DATA IS INVENTED. No content from the user's real export appears anywhere.
+  - Gain/loss follows the confirmed Korean convention: up = red, down = blue,
+    ALWAYS paired with an explicit +/- sign, a direction arrow, and a
+    screen-reader-only direction word. Colour is never load-bearing.
+
+  See docs/design.md and docs/specs/0002-portfolio-pulse-ui-spec.md
+-->
+<style>
+/* ============================================================
+   TOKENS — transcribed from tokens.json
+   ============================================================ */
+:root {
+  /* primitive · color */
+  --color-blue-500: #0066cc;
+  --color-gray-500: #6c757d;
+  --color-green-500: #28a745;
+  --color-amber-500: #ffc107;
+  --color-red-500: #dc3545;
+
+  --color-crimson-50: #fdeef0;
+  --color-crimson-200: #f4c2c9;
+  --color-crimson-600: #c8102e;
+
+  --color-cobalt-50: #eaf1fe;
+  --color-cobalt-200: #bcd3f8;
+  --color-cobalt-600: #0b4fcf;
+
+  --color-slate-50: #eef1f5;
+  --color-slate-200: #cbd4e0;
+  --color-slate-600: #546376;
+
+  --color-neutral-0: #ffffff;
+  --color-neutral-100: #f2f4f7;
+  --color-neutral-200: #e5e8ee;
+  --color-ink-900: #1a1a1a;
+
+  /* primitive · scales */
+  --font-sans: Inter, system-ui, -apple-system, sans-serif;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.5rem;
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --elevation-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --elevation-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --elevation-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+
+  /* semantic · color */
+  --color-primary: var(--color-blue-500);
+  --color-secondary: var(--color-gray-500);
+  --color-success: var(--color-green-500);
+  --color-warning: var(--color-amber-500);
+  --color-danger: var(--color-red-500);
+  --color-background: var(--color-neutral-0);
+  --color-surface: var(--color-neutral-0);
+  --color-surface-sunken: var(--color-neutral-100);
+  --color-border: var(--color-neutral-200);
+  --color-text: var(--color-ink-900);
+  --color-text-muted: var(--color-slate-600);
+
+  --color-value-up: var(--color-crimson-600);
+  --color-value-up-bg: var(--color-crimson-50);
+  --color-value-up-border: var(--color-crimson-200);
+  --color-value-down: var(--color-cobalt-600);
+  --color-value-down-bg: var(--color-cobalt-50);
+  --color-value-down-border: var(--color-cobalt-200);
+  --color-value-flat: var(--color-slate-600);
+  --color-value-flat-bg: var(--color-slate-50);
+  --color-value-flat-border: var(--color-slate-200);
+
+  --color-stale: var(--color-slate-600);
+  --color-stale-bg: var(--color-slate-50);
+  --color-stale-border: var(--color-slate-200);
+  --color-estimated: var(--color-slate-600);
+  --color-estimated-bg: var(--color-slate-50);
+  --color-estimated-border: var(--color-slate-200);
+
+  /* semantic · other */
+  --target-size: 2.75rem;          /* 44px */
+  --focus-ring: 2px solid var(--color-primary);
+  --focus-ring-offset: 2px;
+
+  /* Korean-capable platform stack (alpha — webfont decision deferred) */
+  --font-app: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR",
+              "Malgun Gothic", var(--font-sans);
+}
+
+/* ============================================================
+   PAGE CHROME (the presentation shell around the phone —
+   not part of the product design)
+   ============================================================ */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: var(--space-xl) var(--space-md) 4rem;
+  font-family: var(--font-app);
+  color: var(--color-text);
+  background: #dfe3ea;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page-head {
+  max-width: 460px;
+  margin: 0 auto var(--space-lg);
+  text-align: center;
+}
+.page-head h1 {
+  margin: 0 0 var(--space-xs);
+  font-size: var(--font-size-lg);
+  letter-spacing: -0.01em;
+}
+.page-head p {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-slate-600);
+}
+.page-head code {
+  font-size: 0.75rem;
+  background: rgba(255,255,255,.6);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================================
+   PHONE FRAME
+   ============================================================ */
+.phone {
+  width: 390px;
+  height: 844px;
+  margin: 0 auto;
+  background: var(--color-background);
+  border-radius: 42px;
+  border: 11px solid #10151f;
+  box-shadow: 0 24px 60px rgba(16, 21, 31, .34);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.notch {
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 132px; height: 26px;
+  background: #10151f;
+  border-radius: 0 0 16px 16px;
+  z-index: 40;
+}
+
+.statusbar {
+  flex: none;
+  height: 42px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 var(--space-lg) var(--space-xs);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-background);
+  z-index: 30;
+}
+
+/* ============================================================
+   APP BAR
+   ============================================================ */
+.appbar {
+  flex: none;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-background);
+  border-bottom: 1px solid var(--color-border);
+  z-index: 20;
+}
+.appbar h1 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.appbar .asof {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.appbar .back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.appbar .back .chev { font-size: 1.35rem; line-height: 1; color: var(--color-primary); }
+
+/* ============================================================
+   SCROLL AREA + PANELS
+   ============================================================ */
+.viewport {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--color-surface-sunken);
+  scrollbar-width: thin;
+}
+.viewport::-webkit-scrollbar { width: 4px; }
+.viewport::-webkit-scrollbar-thumb { background: var(--color-slate-200); border-radius: 2px; }
+
+.panel { display: none; padding: var(--space-md) var(--space-md) var(--space-xl); }
+.panel.is-active { display: block; }
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  box-shadow: var(--elevation-sm);
+}
+.card--flush { padding: 0; overflow: hidden; }
+
+h2.section {
+  margin: var(--space-lg) 0 var(--space-sm);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+h2.section .count {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.meta {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   PLFigure — the single gain/loss renderer.
+   Direction carried by FOUR channels: arrow glyph, +/- sign,
+   colour, and a visually-hidden word. Colour is redundant.
+   ============================================================ */
+.pl {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.28em;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.pl__arrow { font-size: 0.82em; line-height: 1; }
+.pl__pct { font-weight: 600; font-size: 0.92em; }
+.pl--up   { color: var(--color-value-up); }
+.pl--down { color: var(--color-value-down); }
+.pl--flat { color: var(--color-value-flat); }
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ============================================================
+   BADGES — always text, never colour or icon alone
+   ============================================================ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 4px 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.badge--estimated {
+  color: var(--color-estimated);
+  background: var(--color-estimated-bg);
+  border-color: var(--color-estimated-border);
+}
+.badge--stale {
+  color: var(--color-stale);
+  background: var(--color-stale-bg);
+  border-color: var(--color-stale-border);
+}
+.badge--manual {
+  color: var(--color-primary);
+  background: #e8f1fb;
+  border-color: #c3ddf5;
+}
+.badge--superseded,
+.badge--voided {
+  color: var(--color-slate-600);
+  background: var(--color-slate-50);
+  border-color: var(--color-slate-200);
+}
+.badge--up {
+  color: var(--color-value-up);
+  background: var(--color-value-up-bg);
+  border-color: var(--color-value-up-border);
+}
+.badge--down {
+  color: var(--color-value-down);
+  background: var(--color-value-down-bg);
+  border-color: var(--color-value-down-border);
+}
+
+/* ============================================================
+   STALE BANNER — information, not an error. Never --color-danger.
+   ============================================================ */
+.stale-banner {
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-md);
+  background: var(--color-stale-bg);
+  border: 1px solid var(--color-stale-border);
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--color-stale);
+}
+.stale-banner .icon { flex: none; font-weight: 700; }
+.stale-banner strong { color: var(--color-text); }
+
+/* ============================================================
+   HERO SUMMARY
+   ============================================================ */
+.hero { text-align: left; }
+.hero__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: 2px;
+}
+.hero__value {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  margin-bottom: var(--space-xs);
+}
+.hero__delta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+.hero__delta .cmp { font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600; }
+
+.alloc {
+  display: flex;
+  gap: 2px;
+  margin-top: var(--space-md);
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.alloc span { display: block; height: 100%; }
+.alloc__kr { background: var(--color-primary); }
+.alloc__us { background: var(--color-slate-200); }
+.alloc-legend {
+  display: flex;
+  gap: var(--space-md);
+  margin-top: var(--space-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.alloc-legend i {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 2px;
+  margin-right: 5px;
+}
+
+/* ============================================================
+   BRIEFING
+   ============================================================ */
+.prose {
+  font-size: 0.9375rem;
+  line-height: 1.68;
+  margin: 0;
+  color: var(--color-text);
+  word-break: keep-all;
+}
+.prose + .prose { margin-top: var(--space-sm); }
+
+.brief-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: 2px;
+}
+.brief-card__head h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.brief-card__sub {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  margin-bottom: var(--space-sm);
+  font-variant-numeric: tabular-nums;
+}
+.brief-card__links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+  min-height: var(--target-size);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.disclaimer {
+  margin-top: var(--space-lg);
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 0 var(--space-sm);
+}
+
+/* ============================================================
+   SEGMENTED FILTER — 44px targets
+   ============================================================ */
+.segmented {
+  display: flex;
+  gap: var(--space-xs);
+  padding: var(--space-xs);
+  background: var(--color-neutral-200);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-md);
+}
+.segmented button {
+  flex: 1;
+  min-height: 36px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background var(--duration-fast), color var(--duration-fast);
+}
+.segmented button[aria-pressed="true"] {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--elevation-sm);
+}
+
+/* ============================================================
+   HOLDINGS TABLE — real table semantics
+   ============================================================ */
+.group-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: var(--space-lg) 0 var(--space-sm);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+.group-head .subtotal {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+table.holdings {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--elevation-sm);
+}
+table.holdings caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+table.holdings th { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+table.holdings td {
+  padding: 0;
+  border-bottom: 1px solid var(--color-border);
+}
+table.holdings tr:last-child td { border-bottom: 0; }
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: 68px;
+  padding: var(--space-sm) var(--space-md);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: background var(--duration-fast);
+}
+.row:hover { background: var(--color-surface-sunken); }
+.row__main { min-width: 0; }
+.row__name {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-bottom: 3px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+.row__sub {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.row__fig { text-align: right; flex: none; }
+.row__value {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  margin-bottom: 3px;
+}
+.row__krw {
+  display: block;
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  margin-top: 3px;
+}
+.row .pl { font-size: 0.8125rem; }
+
+/* ============================================================
+   TOTAL CARD
+   ============================================================ */
+.kv {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+  padding: 5px 0;
+  font-variant-numeric: tabular-nums;
+}
+.kv dt { color: var(--color-text-muted); font-weight: 600; margin: 0; }
+.kv dd { margin: 0; font-weight: 700; }
+.divider { height: 1px; background: var(--color-border); margin: var(--space-sm) 0; }
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  min-height: var(--target-size);
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter var(--duration-fast);
+}
+.btn:hover { filter: brightness(.95); }
+.btn:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-ring-offset); }
+.btn--primary { background: var(--color-primary); color: var(--color-neutral-0); width: 100%; }
+.btn--secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border);
+  flex: 1;
+}
+.btn--ghost {
+  background: transparent;
+  color: var(--color-primary);
+  border-color: var(--color-border);
+  min-height: var(--target-size);
+  padding: 0 var(--space-sm);
+  font-size: 0.8125rem;
+}
+.btn-row { display: flex; gap: var(--space-sm); margin-top: var(--space-md); }
+
+/* ============================================================
+   SPARKLINE — role="img", range duplicated as text,
+   draw animation disabled under prefers-reduced-motion
+   ============================================================ */
+.spark {
+  display: block;
+  width: 100%;
+  height: 92px;
+  overflow: visible;
+}
+.spark path.line {
+  fill: none;
+  stroke: var(--color-value-up);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.spark path.area { fill: var(--color-value-up-bg); stroke: none; }
+.spark-range {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+}
+
+/* ============================================================
+   NEWS
+   ============================================================ */
+.news { list-style: none; margin: 0; padding: 0; }
+.news li {
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--color-border);
+  min-height: var(--target-size);
+  align-items: center;
+  cursor: pointer;
+}
+.news li:last-child { border-bottom: 0; }
+.news__body { min-width: 0; }
+.news__title {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.45;
+  margin-bottom: 3px;
+  word-break: keep-all;
+}
+.news__src { display: block; font-size: 0.6875rem; color: var(--color-text-muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ============================================================
+   TRANSACTIONS
+   ============================================================ */
+.date-group {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  margin: var(--space-lg) 0 var(--space-sm);
+  font-variant-numeric: tabular-nums;
+}
+.txn {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-sm);
+  box-shadow: var(--elevation-sm);
+}
+.txn__top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: 3px;
+}
+.txn__type {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: var(--radius-sm);
+  line-height: 1;
+  border: 1px solid transparent;
+}
+.txn__type--buy {
+  color: var(--color-value-up);
+  background: var(--color-value-up-bg);
+  border-color: var(--color-value-up-border);
+}
+.txn__type--sell {
+  color: var(--color-value-down);
+  background: var(--color-value-down-bg);
+  border-color: var(--color-value-down-border);
+}
+.txn__type--setqty {
+  color: var(--color-slate-600);
+  background: var(--color-slate-50);
+  border-color: var(--color-slate-200);
+}
+.txn__name { font-size: 0.9375rem; font-weight: 700; letter-spacing: -0.01em; }
+.txn__calc {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.txn__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+}
+.txn__actions { display: flex; gap: var(--space-xs); }
+.txn--inactive { background: var(--color-surface-sunken); }
+.txn--inactive .txn__name,
+.txn--inactive .txn__calc { color: var(--color-text-muted); }
+/* struck-through is ALWAYS accompanied by the badge, never used alone */
+.txn--inactive .txn__calc { text-decoration: line-through; }
+
+/* ============================================================
+   FORM (bottom sheet)
+   ============================================================ */
+.sheet {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elevation-lg);
+  overflow: hidden;
+}
+.sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+}
+.sheet__head h3 { margin: 0; font-size: var(--font-size-base); font-weight: 700; }
+.sheet__body { padding: var(--space-md); }
+
+.field { margin-bottom: var(--space-md); }
+.field > label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+.field .hint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin-top: 5px;
+  word-break: keep-all;
+}
+.control {
+  width: 100%;
+  min-height: var(--target-size);
+  padding: 0 var(--space-sm);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+.control:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-ring-offset); }
+.control--error { border-color: var(--color-danger); border-width: 2px; }
+.field-row { display: flex; gap: var(--space-sm); }
+.field-row .field { flex: 1; }
+
+/* the date field is deliberately prominent: transaction_date is the
+   ordering + supersession key (ADR-0004), not a bookkeeping timestamp */
+.field--date .control {
+  border-color: var(--color-primary);
+  font-weight: 700;
+}
+
+.typeselect { display: flex; gap: var(--space-xs); }
+.typeselect button {
+  flex: 1;
+  min-height: var(--target-size);
+  padding: 0 2px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+.typeselect button[aria-pressed="true"] {
+  border-color: var(--color-primary);
+  border-width: 2px;
+  color: var(--color-primary);
+  background: #f2f8fe;
+}
+
+.computed {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-surface-sunken);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-md);
+  font-variant-numeric: tabular-nums;
+}
+.computed dt { font-size: 0.8125rem; font-weight: 600; color: var(--color-text-muted); margin: 0; }
+.computed dd { margin: 0; font-size: 1.125rem; font-weight: 700; letter-spacing: -0.02em; }
+
+/* validation error: --color-danger, never a value colour */
+.error {
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background: #fdf0f1;
+  color: var(--color-danger);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.5;
+  margin-bottom: var(--space-md);
+  word-break: keep-all;
+}
+.error .icon { flex: none; }
+
+/* ============================================================
+   TAB BAR — 4 destinations, 44px+ targets, thumb zone
+   ============================================================ */
+.tabbar {
+  flex: none;
+  display: flex;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  padding-bottom: 18px;   /* safe-area stand-in */
+  z-index: 30;
+}
+.tabbar button {
+  flex: 1;
+  min-height: var(--target-size);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: var(--space-sm) 0 var(--space-xs);
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color var(--duration-fast);
+}
+.tabbar button[aria-selected="true"] { color: var(--color-primary); }
+.tabbar button:focus-visible { outline: var(--focus-ring); outline-offset: -2px; }
+.tabbar .glyph { font-size: 1.15rem; line-height: 1; }
+
+/* ============================================================
+   ANNOTATION (mockup-only, explains a design rule to the reviewer)
+   ============================================================ */
+.note {
+  max-width: 460px;
+  margin: var(--space-lg) auto 0;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: #3d4857;
+  background: rgba(255,255,255,.7);
+  border: 1px solid rgba(0,0,0,.07);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+.note b { color: #10151f; }
+.note ul { margin: var(--space-sm) 0 0; padding-left: 1.1rem; }
+.note li { margin-bottom: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <h1>portfolio-pulse — Visual Alpha v1</h1>
+  <p>
+    Tap the bottom tabs to move between the four screens. Colours come from
+    <code>tokens.json</code>; all figures, names and text are invented.
+  </p>
+</div>
+
+<div class="phone">
+  <div class="notch"></div>
+
+  <div class="statusbar">
+    <span>9:41</span>
+    <span aria-hidden="true">▮▮▮ ᯤ 100%</span>
+  </div>
+
+  <!-- ==================== APP BAR ==================== -->
+  <header class="appbar" id="appbar"></header>
+
+  <!-- ==================== SCROLLING CONTENT ==================== -->
+  <main class="viewport" id="viewport">
+
+    <!-- ============================================================
+         SCREEN 1 — Today's Briefing  (/)
+         ============================================================ -->
+    <section class="panel is-active" id="panel-briefing" role="tabpanel" aria-labelledby="tab-briefing">
+
+      <!-- StaleBanner: information, not an error -->
+      <div class="stale-banner" role="status">
+        <span class="icon" aria-hidden="true">ⓘ</span>
+        <span><strong>시세 지연</strong> — 환율 제공자가 응답하지 않아 일부 환산 금액이 최신이
+          아닙니다. 마지막 정상 수집 09-08 06:12.</span>
+      </div>
+
+      <!-- HeroSummary -->
+      <div class="card hero">
+        <div class="hero__label">총 평가금액</div>
+        <div class="hero__value">₩ 87,432,100</div>
+        <div class="hero__delta">
+          <span class="pl pl--up" aria-atomic="true">
+            <span class="pl__arrow" aria-hidden="true">▲</span>
+            <span class="pl__amount">+1,240,000원</span>
+            <span class="pl__pct">(+1.44%)</span>
+            <span class="sr-only">상승</span>
+          </span>
+          <span class="cmp">전일 대비</span>
+        </div>
+        <div class="alloc" aria-hidden="true">
+          <span class="alloc__kr" style="width:62%"></span>
+          <span class="alloc__us" style="width:38%"></span>
+        </div>
+        <div class="alloc-legend">
+          <span><i class="alloc__kr" style="background:var(--color-primary)"></i>국내 62%</span>
+          <span><i class="alloc__us" style="background:var(--color-slate-200)"></i>해외 38%</span>
+        </div>
+      </div>
+
+      <!-- MarketOverview -->
+      <h2 class="section">간밤 시장 요약</h2>
+      <div class="card">
+        <p class="prose">
+          간밤 미국 증시는 반도체 업종을 중심으로 상승 마감했습니다. 금리 인하 기대가 다시 살아나면서
+          기술주 전반에 매수세가 유입됐고, 대형 반도체 지수는 1.8% 올랐습니다.
+        </p>
+        <p class="prose">
+          원·달러 환율은 1,382원대에서 등락했습니다. 국내 시장은 외국인 순매수가 이어지는 가운데
+          전기·전자 업종이 강세를 보였습니다. 보유 종목 5개 중 3개가 상승, 2개가 하락했습니다.
+        </p>
+      </div>
+
+      <!-- BriefingCards — h3 per holding so a screen reader can skip positions -->
+      <h2 class="section">종목별 브리핑 <span class="count">5</span></h2>
+
+      <article class="card">
+        <div class="brief-card__head">
+          <h3>가나전자</h3>
+          <span class="pl pl--up" aria-atomic="true">
+            <span class="pl__arrow" aria-hidden="true">▲</span>
+            <span class="pl__pct">+2.10%</span>
+            <span class="sr-only">상승</span>
+          </span>
+        </div>
+        <div class="brief-card__sub">005930 · KRX</div>
+        <p class="prose">
+          어제 외국인이 3거래일 연속 순매수했습니다. 증권가에서는 하반기 메모리 가격 반등을 근거로
+          목표주가를 상향한 보고서가 나왔고, 이에 따라 장 초반부터 매수세가 유입됐습니다. 다만 거래량은
+          최근 20일 평균을 밑돌아 추세를 확인하기에는 이른 것으로 보입니다.
+        </p>
+        <div class="brief-card__links">▸ 관련 뉴스 2건 · 공시 1건</div>
+      </article>
+
+      <article class="card">
+        <div class="brief-card__head">
+          <h3><span lang="en">SMPL.B</span></h3>
+          <span class="pl pl--up" aria-atomic="true">
+            <span class="pl__arrow" aria-hidden="true">▲</span>
+            <span class="pl__pct">+5.35%</span>
+            <span class="sr-only">상승</span>
+          </span>
+        </div>
+        <div class="brief-card__sub">US · NYSE</div>
+        <p class="prose">
+          분기 실적이 시장 예상을 웃돌면서 시간외 거래에서 급등했습니다. 회사는 구독 매출이 전년 대비
+          19% 증가했다고 밝혔으며, 로이터는
+          <span lang="en">“Sample Corp raises full-year guidance on subscription strength”</span>
+          라는 제목으로 이를 보도했습니다.
+        </p>
+        <div class="brief-card__links">▸ 관련 뉴스 3건</div>
+      </article>
+
+      <article class="card">
+        <div class="brief-card__head">
+          <h3>대한바이오</h3>
+          <span class="pl pl--down" aria-atomic="true">
+            <span class="pl__arrow" aria-hidden="true">▼</span>
+            <span class="pl__pct">−1.82%</span>
+            <span class="sr-only">하락</span>
+          </span>
+        </div>
+        <div class="brief-card__sub">
+          068270 · KRX
+          <span class="badge badge--stale" style="margin-left:6px">시세 지연</span>
+        </div>
+        <p class="prose">
+          임상 3상 중간 결과 발표가 다음 달로 미뤄졌다는 소식에 차익 실현 매물이 나왔습니다. 이 종목의
+          시세는 제공자 오류로 09-08 06:12 기준 값이며, 그 이후 가격은 반영되지 않았습니다.
+        </p>
+        <div class="brief-card__links">▸ 관련 뉴스 1건 · 공시 2건</div>
+      </article>
+
+      <p class="disclaimer">
+        본 화면은 정보 제공을 목적으로 하며 투자 자문이 아닙니다.<br>
+        모든 수치는 업로드된 자료와 시세 제공자 데이터를 기반으로 계산됩니다.
+      </p>
+    </section>
+
+    <!-- ============================================================
+         SCREEN 2 — Portfolio  (/portfolio)
+         ============================================================ -->
+    <section class="panel" id="panel-portfolio" role="tabpanel" aria-labelledby="tab-portfolio">
+
+      <!-- TotalCard: a converted total ALWAYS shows its FX rate + timestamp -->
+      <div class="card hero">
+        <div class="hero__label">총 평가금액 <span style="font-weight:400">(KRW 환산)</span></div>
+        <div class="hero__value">₩ 87,432,100</div>
+        <div class="hero__delta">
+          <span class="pl pl--down" aria-atomic="true">
+            <span class="pl__arrow" aria-hidden="true">▼</span>
+            <span class="pl__amount">−310,500원</span>
+            <span class="pl__pct">(−0.35%)</span>
+            <span class="sr-only">하락</span>
+          </span>
+          <span class="cmp">전일 대비</span>
+        </div>
+        <div class="divider"></div>
+        <dl style="margin:0">
+          <div class="kv"><dt>매수금액</dt><dd>₩ 81,900,000</dd></div>
+          <div class="kv"><dt>평가손익</dt>
+            <dd><span class="pl pl--up" aria-atomic="true">
+              <span class="pl__arrow" aria-hidden="true">▲</span>
+              <span class="pl__amount">+5,532,100원</span>
+              <span class="pl__pct">(+6.75%)</span>
+              <span class="sr-only">상승</span>
+            </span></dd></div>
+          <div class="kv"><dt>적용 환율</dt><dd>1,382.40원/USD · 09-08 06:12</dd></div>
+        </dl>
+      </div>
+
+      <div class="segmented" role="group" aria-label="시장 필터">
+        <button type="button" aria-pressed="true">전체</button>
+        <button type="button" aria-pressed="false">국내</button>
+        <button type="button" aria-pressed="false">해외</button>
+      </div>
+
+      <!-- ---------- KR group ---------- -->
+      <div class="group-head">
+        <span>국내 (KRX)</span>
+        <span class="subtotal">₩ 54,200,000</span>
+      </div>
+      <table class="holdings">
+        <caption>국내 보유 종목</caption>
+        <thead><tr>
+          <th scope="col">종목</th><th scope="col">평가금액</th><th scope="col">평가손익</th>
+        </tr></thead>
+        <tbody>
+          <tr><td colspan="3">
+            <a class="row" href="#" onclick="return showHolding(event)">
+              <span class="row__main">
+                <span class="row__name">가나전자
+                  <span class="badge badge--estimated">추정 수량</span></span>
+                <span class="row__sub">005930 · 비중 27.8%</span>
+              </span>
+              <span class="row__fig">
+                <span class="row__value">₩24,300,000</span>
+                <span class="pl pl--up" aria-atomic="true">
+                  <span class="pl__arrow" aria-hidden="true">▲</span>
+                  <span class="pl__amount">+1,800,000원</span>
+                  <span class="pl__pct">(+8.00%)</span>
+                  <span class="sr-only">상승</span>
+                </span>
+              </span>
+            </a>
+          </td></tr>
+          <tr><td colspan="3">
+            <a class="row" href="#" onclick="return false">
+              <span class="row__main">
+                <span class="row__name">가나전자우</span>
+                <span class="row__sub">005935 · 비중 9.3%</span>
+              </span>
+              <span class="row__fig">
+                <span class="row__value">₩8,150,000</span>
+                <span class="pl pl--down" aria-atomic="true">
+                  <span class="pl__arrow" aria-hidden="true">▼</span>
+                  <span class="pl__amount">−240,000원</span>
+                  <span class="pl__pct">(−2.86%)</span>
+                  <span class="sr-only">하락</span>
+                </span>
+              </span>
+            </a>
+          </td></tr>
+          <tr><td colspan="3">
+            <a class="row" href="#" onclick="return false">
+              <span class="row__main">
+                <span class="row__name">대한바이오
+                  <span class="badge badge--stale">시세 지연</span></span>
+                <span class="row__sub">068270 · 비중 14.6%</span>
+              </span>
+              <span class="row__fig">
+                <span class="row__value">₩12,780,000</span>
+                <span class="pl pl--down" aria-atomic="true">
+                  <span class="pl__arrow" aria-hidden="true">▼</span>
+                  <span class="pl__amount">−236,000원</span>
+                  <span class="pl__pct">(−1.82%)</span>
+                  <span class="sr-only">하락</span>
+                </span>
+              </span>
+            </a>
+          </td></tr>
+          <tr><td colspan="3">
+            <a class="row" href="#" onclick="return false">
+              <span class="row__main">
+                <span class="row__name">한빛중공업</span>
+                <span class="row__sub">009540 · 비중 10.6%</span>
+              </span>
+              <span class="row__fig">
+                <span class="row__value">₩9,290,000</span>
+                <span class="pl pl--flat" aria-atomic="true">
+                  <span class="pl__arrow" aria-hidden="true">–</span>
+                  <span class="pl__amount">0원</span>
+                  <span class="pl__pct">(0.00%)</span>
+                  <span class="sr-only">보합</span>
+                </span>
+              </span>
+            </a>
+          </td></tr>
+        </tbody>
+      </table>
+
+      <!-- ---------- US group ---------- -->
+      <div class="group-head">
+        <span>해외 (US)</span>
+        <span class="subtotal">$ 23,980.00</span>
+      </div>
+      <table class="holdings">
+        <caption>해외 보유 종목</caption>
+        <thead><tr>
+          <th scope="col">종목</th><th scope="col">평가금액</th><th scope="col">평가손익</th>
+        </tr></thead>
+        <tbody>
+          <tr><td colspan="3">
+            <a class="row" href="#" onclick="return false">
+              <span class="row__main">
+                <span class="row__name"><span lang="en">SMPL.B</span></span>
+                <span class="row__sub">NYSE · 비중 15.1%</span>
+              </span>
+              <span class="row__fig">
+                <span class="row__value">$12,410.00</span>
+                <span class="pl pl--up" aria-atomic="true">
+                  <span class="pl__arrow" aria-hidden="true">▲</span>
+                  <span class="pl__amount">+$630.00</span>
+                  <span class="pl__pct">(+5.35%)</span>
+                  <span class="sr-only">상승</span>
+                </span>
+                <span class="row__krw">₩17,155,584 환산</span>
+              </span>
+            </a>
+          </td></tr>
+          <tr><td colspan="3">
+            <a class="row" href="#" onclick="return false">
+              <span class="row__main">
+                <span class="row__name"><span lang="en">NVDX</span>
+                  <span class="badge badge--estimated">추정 수량</span></span>
+                <span class="row__sub">NASDAQ · 비중 14.1%</span>
+              </span>
+              <span class="row__fig">
+                <span class="row__value">$11,570.00</span>
+                <span class="pl pl--down" aria-atomic="true">
+                  <span class="pl__arrow" aria-hidden="true">▼</span>
+                  <span class="pl__amount">−$182.40</span>
+                  <span class="pl__pct">(−1.55%)</span>
+                  <span class="sr-only">하락</span>
+                </span>
+                <span class="row__krw">₩15,994,368 환산</span>
+              </span>
+            </a>
+          </td></tr>
+          <!-- zero-valuation row: surfaced, never dropped, no divide-by-zero -->
+          <tr><td colspan="3">
+            <a class="row" href="#" onclick="return false">
+              <span class="row__main">
+                <span class="row__name"><span lang="en">ZZTEST ETF</span>
+                  <span class="badge badge--stale">평가금액 없음</span></span>
+                <span class="row__sub">비중 계산 제외</span>
+              </span>
+              <span class="row__fig">
+                <span class="row__value" style="color:var(--color-text-muted)">—</span>
+              </span>
+            </a>
+          </td></tr>
+        </tbody>
+      </table>
+
+      <div style="margin-top:var(--space-lg)">
+        <button class="btn btn--primary" type="button"
+                onclick="switchTab('transactions')">＋ 거래 입력</button>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         SCREEN 3 — Holding detail  (/holdings/[id])
+         ============================================================ -->
+    <section class="panel" id="panel-holding" role="tabpanel" aria-labelledby="tab-portfolio">
+
+      <div class="card hero">
+        <div class="hero__label">평가금액</div>
+        <div class="hero__value">₩ 24,300,000</div>
+        <div class="hero__delta">
+          <span class="pl pl--up" aria-atomic="true">
+            <span class="pl__arrow" aria-hidden="true">▲</span>
+            <span class="pl__amount">+1,800,000원</span>
+            <span class="pl__pct">(+8.00%)</span>
+            <span class="sr-only">상승</span>
+          </span>
+        </div>
+        <div class="meta" style="margin-top:var(--space-sm)">005930 · KRX · 비중 27.8%</div>
+        <div class="divider"></div>
+        <div style="display:flex;align-items:center;gap:var(--space-sm);flex-wrap:wrap">
+          <span class="badge badge--estimated">추정 수량</span>
+          <span class="meta"><strong>300주 (추정)</strong> — 업로드 파일에 수량이 없어
+            평가금액 ÷ 종가로 계산한 값입니다.</span>
+        </div>
+      </div>
+
+      <h2 class="section">30일 가격 추이</h2>
+      <div class="card">
+        <svg class="spark" viewBox="0 0 330 92" role="img"
+             aria-label="최근 30일 가격 추이. 1,300원에서 1,470원 사이에서 등락했으며 전체적으로 상승했습니다.">
+          <path class="area" d="M0,68 L14,72 L28,64 L42,70 L56,58 L70,62 L84,50 L98,55 L112,44 L126,48 L140,52 L154,40 L168,45 L182,34 L196,38 L210,30 L224,35 L238,26 L252,31 L266,22 L280,27 L294,18 L308,23 L322,14 L330,17 L330,92 L0,92 Z"></path>
+          <path class="line" d="M0,68 L14,72 L28,64 L42,70 L56,58 L70,62 L84,50 L98,55 L112,44 L126,48 L140,52 L154,40 L168,45 L182,34 L196,38 L210,30 L224,35 L238,26 L252,31 L266,22 L280,27 L294,18 L308,23 L322,14 L330,17"></path>
+        </svg>
+        <!-- the range is duplicated as TEXT — the chart is never the only carrier -->
+        <div class="spark-range">
+          <span>30일 최저 ₩1,300</span>
+          <span>최고 ₩1,470</span>
+        </div>
+      </div>
+
+      <h2 class="section">보유 내역</h2>
+      <div class="card">
+        <dl style="margin:0">
+          <div class="kv"><dt>평균 단가</dt><dd>₩81,000 <span style="font-weight:600;color:var(--color-text-muted)">(추정)</span></dd></div>
+          <div class="kv"><dt>수량</dt><dd>300주 <span style="font-weight:600;color:var(--color-text-muted)">(추정)</span></dd></div>
+          <div class="kv"><dt>매수금액</dt><dd>₩22,500,000</dd></div>
+          <div class="kv"><dt>기준일</dt><dd>2026-09-08</dd></div>
+        </dl>
+      </div>
+
+      <h2 class="section">관련 뉴스 <span class="count">2</span></h2>
+      <div class="card">
+        <ul class="news">
+          <li>
+            <span class="news__body">
+              <span class="news__title">가나전자, 3분기 메모리 가격 반등에 목표주가 상향</span>
+              <span class="news__src">한국경제 · 09-08 07:20</span>
+            </span>
+          </li>
+          <li>
+            <span class="news__body">
+              <span class="news__title" lang="en">Memory prices seen bottoming out in Q3, analysts say</span>
+              <span class="news__src">Reuters · 09-07 21:05</span>
+            </span>
+          </li>
+        </ul>
+      </div>
+
+      <h2 class="section">공시 <span class="count">1</span></h2>
+      <div class="card">
+        <ul class="news">
+          <li>
+            <span class="news__body">
+              <span class="news__title">주요사항보고서 (자기주식 취득 결정)</span>
+              <span class="news__src">DART · 09-05</span>
+            </span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn--secondary" type="button"
+                onclick="switchTab('transactions')">수량 조정</button>
+        <button class="btn btn--secondary" type="button"
+                onclick="switchTab('transactions')">거래 입력</button>
+      </div>
+
+      <p class="disclaimer">
+        정보 제공 목적이며 투자 자문이 아닙니다.
+      </p>
+    </section>
+
+    <!-- ============================================================
+         SCREEN 4 — Transactions  (/transactions)
+         ============================================================ -->
+    <section class="panel" id="panel-transactions" role="tabpanel" aria-labelledby="tab-transactions">
+
+      <!-- ---------- Add/edit form ---------- -->
+      <div class="sheet" style="margin-bottom:var(--space-lg)">
+        <div class="sheet__head">
+          <h3>거래 입력</h3>
+          <button class="btn btn--ghost" type="button" aria-label="닫기">✕</button>
+        </div>
+        <div class="sheet__body">
+
+          <div class="field">
+            <label id="lbl-type">종류</label>
+            <div class="typeselect" role="group" aria-labelledby="lbl-type">
+              <button type="button" aria-pressed="false">매수</button>
+              <button type="button" aria-pressed="true">매도</button>
+              <button type="button" aria-pressed="false">수량 지정</button>
+              <button type="button" aria-pressed="false">보유 제거</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="f-sec">종목</label>
+            <select class="control" id="f-sec">
+              <option>가나전자 (005930)</option>
+              <option>가나전자우 (005935)</option>
+              <option>대한바이오 (068270)</option>
+              <option>SMPL.B</option>
+            </select>
+          </div>
+
+          <!-- transaction_date is the ordering + supersession key (ADR-0004):
+               visible, editable, keyboard-enterable, back-datable -->
+          <div class="field field--date">
+            <label for="f-date">거래일</label>
+            <input class="control" id="f-date" type="date" value="2026-09-08">
+            <p class="hint">
+              오늘 날짜로 기본 설정됩니다. 나중에 기록하는 거래는 <strong>과거 날짜로 직접 입력</strong>할
+              수 있으며, 키보드로 바로 입력할 수 있습니다.
+            </p>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="f-qty">수량</label>
+              <input class="control control--error" id="f-qty" type="text"
+                     inputmode="decimal" value="50" aria-describedby="f-qty-err">
+            </div>
+            <div class="field">
+              <label for="f-price">단가</label>
+              <input class="control" id="f-price" type="text" inputmode="decimal" value="81,200">
+            </div>
+          </div>
+
+          <!-- error names the CURRENT quantity so it states the correction -->
+          <div class="error" id="f-qty-err" role="alert">
+            <span class="icon" aria-hidden="true">⚠</span>
+            <span>보유 수량(30주)을 초과하는 매도입니다. 30주 이하로 입력해 주세요.</span>
+          </div>
+
+          <dl class="computed">
+            <dt>금액 (자동 계산)</dt>
+            <dd>₩4,060,000</dd>
+          </dl>
+
+          <div class="btn-row" style="margin-top:0">
+            <button class="btn btn--secondary" type="button">취소</button>
+            <button class="btn btn--primary" type="button" style="flex:1;width:auto">저장</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- Log ---------- -->
+      <div class="segmented" role="group" aria-label="거래 상태 필터">
+        <button type="button" aria-pressed="true">활성</button>
+        <button type="button" aria-pressed="false">대체됨</button>
+        <button type="button" aria-pressed="false">취소됨</button>
+      </div>
+
+      <div class="date-group">2026-09-07</div>
+      <div class="txn">
+        <div class="txn__top">
+          <span class="txn__type txn__type--buy">매수</span>
+          <span class="txn__name">가나전자</span>
+        </div>
+        <div class="txn__calc">50주 × ₩81,200 = ₩4,060,000</div>
+        <div class="txn__foot">
+          <span class="badge badge--manual">수동 조정</span>
+          <span class="txn__actions">
+            <button class="btn btn--ghost" type="button">수정</button>
+            <button class="btn btn--ghost" type="button">취소</button>
+          </span>
+        </div>
+      </div>
+
+      <div class="date-group">2026-09-05</div>
+      <div class="txn">
+        <div class="txn__top">
+          <span class="txn__type txn__type--setqty">수량 지정</span>
+          <span class="txn__name">대한바이오</span>
+        </div>
+        <div class="txn__calc">120주 (추정 → 확정)</div>
+        <div class="txn__foot">
+          <span class="badge badge--manual">수동 조정</span>
+          <span class="txn__actions">
+            <button class="btn btn--ghost" type="button">수정</button>
+            <button class="btn btn--ghost" type="button">취소</button>
+          </span>
+        </div>
+      </div>
+
+      <div class="date-group">2026-09-02</div>
+      <!-- superseded: struck text is ALWAYS accompanied by the badge -->
+      <div class="txn txn--inactive">
+        <div class="txn__top">
+          <span class="txn__type txn__type--sell">매도</span>
+          <span class="txn__name"><span lang="en">SMPL.B</span></span>
+        </div>
+        <div class="txn__calc">10주 × $124.10 = $1,241.00</div>
+        <div class="txn__foot">
+          <span class="badge badge--superseded">대체됨 · 09-08 스냅샷</span>
+          <span class="meta" style="font-size:0.6875rem">기록은 보존됩니다</span>
+        </div>
+      </div>
+
+      <div class="txn txn--inactive">
+        <div class="txn__top">
+          <span class="txn__type txn__type--buy">매수</span>
+          <span class="txn__name">한빛중공업</span>
+        </div>
+        <div class="txn__calc">20주 × ₩46,450 = ₩929,000</div>
+        <div class="txn__foot">
+          <span class="badge badge--voided">취소됨 · 09-06</span>
+          <span class="meta" style="font-size:0.6875rem">행은 삭제되지 않습니다</span>
+        </div>
+      </div>
+
+      <div style="margin-top:var(--space-lg)">
+        <button class="btn btn--primary" type="button">＋ 거래 입력</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== TAB BAR ==================== -->
+  <nav class="tabbar" role="tablist" aria-label="주요 화면">
+    <button role="tab" id="tab-briefing"     aria-selected="true"  aria-controls="panel-briefing"     onclick="switchTab('briefing')"><span class="glyph" aria-hidden="true">◉</span>브리핑</button>
+    <button role="tab" id="tab-portfolio"    aria-selected="false" aria-controls="panel-portfolio"    onclick="switchTab('portfolio')"><span class="glyph" aria-hidden="true">▦</span>포트폴리오</button>
+    <button role="tab" id="tab-holding"      aria-selected="false" aria-controls="panel-holding"      onclick="switchTab('holding')"><span class="glyph" aria-hidden="true">▤</span>종목 상세</button>
+    <button role="tab" id="tab-transactions" aria-selected="false" aria-controls="panel-transactions" onclick="switchTab('transactions')"><span class="glyph" aria-hidden="true">⇄</span>거래</button>
+  </nav>
+</div>
+
+<div class="note">
+  <b>What to look at in this alpha</b>
+  <ul>
+    <li><b>Gain/loss colour.</b> Red = up, blue = down (Korean convention, applied to KR and US
+      holdings alike). Every figure also carries a <code>+</code>/<code>−</code> sign, an arrow, and a
+      hidden word (상승/하락/보합) — squint or go greyscale and the numbers still read correctly.</li>
+    <li><b>Red never means "bad" here.</b> The validation error in 거래 입력 uses a different red
+      (<code>--color-danger</code>) from the gain red (<code>--color-value-up</code>) on purpose.</li>
+    <li><b>Uncertainty is visible.</b> 추정 수량 (back-derived share count) and 시세 지연 (a provider
+      failed) are text badges with their own tokens, not greyed-out or italicised.</li>
+    <li><b>The 거래일 field is deliberately prominent</b> and back-datable — the transaction date
+      decides ordering and supersession, so it can't be hidden or pinned to "now".</li>
+    <li><b>No login anywhere</b> — auth was removed from the design in spec v3.</li>
+  </ul>
+  <p style="margin:var(--space-sm) 0 0">
+    Deferred to the next round: <code>/upload</code> and <code>/settings</code> screens, icon system,
+    dark theme review, full component sheet.
+  </p>
+</div>
+
+<script>
+/* Tab switching — the only interactivity. This is a visual mockup, not an app. */
+function switchTab(name) {
+  document.querySelectorAll('.panel').forEach(function (p) {
+    p.classList.toggle('is-active', p.id === 'panel-' + name);
+  });
+  document.querySelectorAll('.tabbar [role="tab"]').forEach(function (t) {
+    t.setAttribute('aria-selected', String(t.id === 'tab-' + name));
+  });
+  renderAppBar(name);
+  document.getElementById('viewport').scrollTop = 0;
+}
+
+function showHolding(e) {
+  e.preventDefault();
+  switchTab('holding');
+  return false;
+}
+
+var APPBARS = {
+  briefing:     '<h1>오늘의 브리핑</h1><span class="asof">9월 8일 (월)</span>',
+  portfolio:    '<h1>포트폴리오</h1><span class="asof">기준일 09-08</span>',
+  holding:      '<button class="back" type="button" onclick="switchTab(\'portfolio\')">' +
+                '<span class="chev" aria-hidden="true">‹</span><h1>가나전자</h1></button>' +
+                '<span class="asof">KRX</span>',
+  transactions: '<h1>거래 내역</h1><span class="asof">수동 조정</span>'
+};
+
+function renderAppBar(name) {
+  document.getElementById('appbar').innerHTML = APPBARS[name];
+}
+
+/* Simple pressed-state toggles for the segmented controls, so the mockup
+   feels alive when clicked. No data is filtered. */
+document.querySelectorAll('.segmented, .typeselect').forEach(function (group) {
+  group.addEventListener('click', function (e) {
+    var btn = e.target.closest('button');
+    if (!btn) return;
+    group.querySelectorAll('button').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b === btn));
+    });
+  });
+});
+
+renderAppBar('briefing');
+</script>
+
+</body>
+</html>
