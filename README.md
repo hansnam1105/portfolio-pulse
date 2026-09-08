@@ -38,11 +38,15 @@ holdings.
 - [Next.js 15](https://nextjs.org/) (App Router) + TypeScript
 - [Neon](https://neon.tech/) serverless Postgres via [Drizzle ORM](https://orm.drizzle.team/)
 - [Zod](https://zod.dev/) for runtime validation at API/data boundaries
-- Deployed on [Vercel](https://vercel.com/) (Hobby tier)
+- [Auth.js](https://authjs.dev/) (Google provider), restricted to a single allowlisted account
+- Self-hosted on an Oracle Cloud Always Free VM (Nginx + Let's Encrypt + PM2)
 
 See [`docs/adr/0001-tech-stack-nextjs-vercel-postgres.md`](docs/adr/0001-tech-stack-nextjs-vercel-postgres.md)
-for the reasoning behind these choices, and [`docs/adr/`](docs/adr/) for the
-rest of the architecture decision record.
+for the reasoning behind the core stack choices,
+[`docs/adr/0005-google-oauth-single-user-access.md`](docs/adr/0005-google-oauth-single-user-access.md)
+for the auth decision,
+[`docs/adr/0006-self-hosted-oracle-cloud-deployment.md`](docs/adr/0006-self-hosted-oracle-cloud-deployment.md)
+for the hosting decision, and [`docs/adr/`](docs/adr/) for the rest of the architecture decision record.
 
 ## Data sources
 
@@ -72,7 +76,18 @@ bun run dev
 
 You'll need your own Neon (or other Postgres-compatible) database and your
 own API keys for: KRX, DART, ECOS, Finnhub, FMP, Naver Search, and Gemini.
-See `.env.sample` for the full list of required and optional variables.
+You'll also need a Google OAuth Client ID/Secret (Google Cloud Console →
+APIs & Services → Credentials) and to set `ALLOWED_GOOGLE_EMAIL` to your own
+address — see `.env.sample` for the full list of required and optional
+variables.
+
+## Deployment
+
+Deployed on a self-managed Oracle Cloud Always Free VM (Nginx reverse proxy,
+Let's Encrypt TLS, PM2 process manager, system cron for the daily briefing
+job) rather than a managed platform — see
+[ADR-0006](docs/adr/0006-self-hosted-oracle-cloud-deployment.md) for the
+setup and the trade-offs that come with it.
 
 ## Tests
 
