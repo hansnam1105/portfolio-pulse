@@ -20,6 +20,19 @@ investment advice.
 - **Upload** (`/upload`) — import a Samsung Securities export (`.xlsx`) to
   bulk-load transactions.
 
+### Preview
+
+Mockup screens from the approved visual alpha (`docs/mockups/alpha-v1.html`) —
+all names, prices, and figures shown are invented sample data, not real
+holdings.
+
+<p>
+  <img src="docs/screenshots/01-briefing.png" width="200" alt="Today's Briefing screen" />
+  <img src="docs/screenshots/02-portfolio.png" width="200" alt="Portfolio screen" />
+  <img src="docs/screenshots/03-holding-detail.png" width="200" alt="Holding detail screen" />
+  <img src="docs/screenshots/04-transactions.png" width="200" alt="Transactions screen with manual entry form" />
+</p>
+
 ## Tech stack
 
 - [Next.js 15](https://nextjs.org/) (App Router) + TypeScript

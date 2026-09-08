@@ -19,6 +19,19 @@
 - **업로드** (`/upload`) — 삼성증권 거래내역 파일(`.xlsx`)을 가져와 거래
   내역을 일괄 등록합니다.
 
+### 미리보기
+
+승인된 디자인 알파 목업(`docs/mockups/alpha-v1.html`)에서 캡처한 화면입니다 —
+표시된 종목명, 가격, 수치는 전부 가상의 예시 데이터이며 실제 보유 종목이
+아닙니다.
+
+<p>
+  <img src="docs/screenshots/01-briefing.png" width="200" alt="오늘의 브리핑 화면" />
+  <img src="docs/screenshots/02-portfolio.png" width="200" alt="포트폴리오 화면" />
+  <img src="docs/screenshots/03-holding-detail.png" width="200" alt="종목 상세 화면" />
+  <img src="docs/screenshots/04-transactions.png" width="200" alt="수동 입력 폼이 있는 거래 내역 화면" />
+</p>
+
 ## 기술 스택
 
 - [Next.js 15](https://nextjs.org/) (App Router) + TypeScript
