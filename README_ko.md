@@ -37,10 +37,15 @@
 - [Next.js 15](https://nextjs.org/) (App Router) + TypeScript
 - [Drizzle ORM](https://orm.drizzle.team/)을 통한 [Neon](https://neon.tech/) 서버리스 Postgres
 - API/데이터 경계에서의 런타임 검증을 위한 [Zod](https://zod.dev/)
-- [Vercel](https://vercel.com/)(Hobby 티어)에 배포
+- [Auth.js](https://authjs.dev/) (Google 프로바이더), 허용된 계정 1개로만 접근 제한
+- Oracle Cloud Always Free VM에 직접 호스팅 (Nginx + Let's Encrypt + PM2)
 
-이러한 선택의 배경에 대해서는
+핵심 스택 선택의 배경에 대해서는
 [`docs/adr/0001-tech-stack-nextjs-vercel-postgres.md`](docs/adr/0001-tech-stack-nextjs-vercel-postgres.md)를,
+인증 관련 결정은
+[`docs/adr/0005-google-oauth-single-user-access.md`](docs/adr/0005-google-oauth-single-user-access.md)를,
+호스팅 관련 결정은
+[`docs/adr/0006-self-hosted-oracle-cloud-deployment.md`](docs/adr/0006-self-hosted-oracle-cloud-deployment.md)를,
 아키텍처 결정 기록 전체는 [`docs/adr/`](docs/adr/)를 참고하세요.
 
 ## 데이터 소스
@@ -70,8 +75,18 @@ bun run dev
 ```
 
 본인 소유의 Neon(또는 다른 Postgres 호환) 데이터베이스와 KRX, DART, ECOS,
-Finnhub, FMP, 네이버 검색, Gemini용 API 키가 각각 필요합니다. 필수 및 선택
-환경 변수의 전체 목록은 `.env.sample`을 참고하세요.
+Finnhub, FMP, 네이버 검색, Gemini용 API 키가 각각 필요합니다. 또한 Google
+OAuth Client ID/Secret(Google Cloud Console → APIs & Services →
+Credentials)이 필요하며, `ALLOWED_GOOGLE_EMAIL`을 본인 계정으로 설정해야
+합니다. 필수 및 선택 환경 변수의 전체 목록은 `.env.sample`을 참고하세요.
+
+## 배포
+
+관리형 플랫폼 대신 직접 관리하는 Oracle Cloud Always Free VM에 배포되어
+있습니다 (Nginx 리버스 프록시, Let's Encrypt TLS, PM2 프로세스 관리, 일일
+브리핑 작업용 시스템 크론). 설정 과정과 트레이드오프는
+[ADR-0006](docs/adr/0006-self-hosted-oracle-cloud-deployment.md)을
+참고하세요.
 
 ## 테스트
 

@@ -930,7 +930,8 @@ table.holdings tr:last-child td {
   padding-bottom: max(env(safe-area-inset-bottom), var(--space-xs));
   z-index: 30;
 }
-.tabbar a {
+.tabbar a,
+.tabbar button {
   flex: 1;
   min-height: var(--target-size);
   display: flex;
@@ -939,16 +940,21 @@ table.holdings tr:last-child td {
   justify-content: center;
   gap: 3px;
   padding: var(--space-sm) 0 var(--space-xs);
+  font: inherit;
   font-size: 0.6875rem;
   font-weight: 700;
   color: var(--color-text-muted);
   text-decoration: none;
+  background: none;
+  border: 0;
+  cursor: pointer;
   transition: color var(--motion-duration-fast);
 }
 .tabbar a[aria-current="page"] {
   color: var(--color-primary);
 }
-.tabbar a:focus-visible {
+.tabbar a:focus-visible,
+.tabbar button:focus-visible {
   outline: var(--focus-ring);
   outline-offset: -2px;
 }

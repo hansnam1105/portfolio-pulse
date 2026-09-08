@@ -3,7 +3,8 @@
 /**
  * `TabBar` — the app's only global navigation (spec 0002 §1.1): 4 primary
  * destinations, fixed bottom, ≥44px targets, `env(safe-area-inset-bottom)`
- * padding. No drawer, no profile menu (no auth).
+ * padding. No drawer, no profile menu — just a 5th "sign out" control (added
+ * for ADR-0005's single-user Google auth), styled identically to the tabs.
  *
  * DEVIATION FROM MOCKUP (flagged per dispatch instructions): the visual
  * alpha (docs/mockups/alpha-v1.html) uses `role="tablist"`/`role="tab"` with
@@ -26,6 +27,7 @@
  */
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 
 const TABS = [
   { href: "/", label: "브리핑", glyph: "◉" },
@@ -50,6 +52,12 @@ export function TabBar() {
           </Link>
         );
       })}
+      <button type="button" onClick={() => signOut({ callbackUrl: "/api/auth/signin" })}>
+        <span className="glyph" aria-hidden="true">
+          ⏻
+        </span>
+        로그아웃
+      </button>
     </nav>
   );
 }

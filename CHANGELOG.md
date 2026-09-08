@@ -13,6 +13,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Five app screens: Today's Briefing, Portfolio, Holding detail,
   Transactions, and Upload.
 - Test suite covering unit, integration, and end-to-end scenarios.
+- Google OAuth sign-in restricted to a single allowlisted account (ADR-0005),
+  with a sign-out control in the tab bar and route protection via
+  `middleware.ts`.
+
+### Changed
+
+- Migrated hosting from Vercel to a self-managed Oracle Cloud Always Free VM
+  (Nginx + Let's Encrypt + PM2 + system cron), replacing `vercel.json`
+  (ADR-0006).
 
 ### Fixed
 
