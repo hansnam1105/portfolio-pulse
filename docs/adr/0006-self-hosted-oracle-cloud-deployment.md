@@ -46,6 +46,10 @@ Notable execution details, in case the VM is rebuilt from scratch later:
   public IP was actually reachable. Oracle's Security List rules (22/80/443 ingress) are necessary but
   not sufficient — the box's own `iptables` (shipped by the Ubuntu cloud image) independently drops
   everything but SSH by default and needed explicit `ACCEPT` rules for 80/443 as well.
+- **Nginx needs `proxy_read_timeout`/`proxy_send_timeout` raised to 300s** for this app's server
+  block. The daily-briefing job runs synchronously inside its own request and takes ~75s once every
+  provider is healthy (each provider call is rate-limited to 1 req/s), which exceeds Nginx's 60s
+  default and made the cron caller see a 504 while the job actually completed server-side.
 
 ## Consequences
 

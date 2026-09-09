@@ -2,10 +2,16 @@ import "server-only";
 
 /**
  * Naver Search API client — Korean-language news per held security name
- * (spec 0001 § Provider integration matrix). Endpoint shape matches Naver's
- * publicly documented `/v1/search/news.json` REST API, authenticated via the
- * `X-Naver-Client-Id` / `X-Naver-Client-Secret` headers (not query params, so
- * no key-stripping concern for this provider's endpoint logging).
+ * (spec 0001 § Provider integration matrix).
+ *
+ * MIGRATED (2026-09-10) to NAVER API HUB — the legacy NAVER Developers
+ * Center endpoint (`openapi.naver.com/v1/search/news.json` with
+ * `X-Naver-Client-Id`/`X-Naver-Client-Secret`) now rejects API HUB
+ * credentials with errorCode 024. Per
+ * https://guide.ncloud-docs.com/docs/apihub-migration the host, path AND
+ * header names all changed; the response body shape is unchanged.
+ * Auth still travels in headers (not query params), so there is no
+ * key-stripping concern for this provider's endpoint logging.
  * Cadence/TTL: daily job, 12h TTL.
  */
 import { z } from "zod";
@@ -46,7 +52,7 @@ export async function fetchNaverNews(
   env: NodeJS.ProcessEnv = process.env,
 ): Promise<GatewayResult<NaverNewsResponse>> {
   const { NAVER_CLIENT_ID, NAVER_CLIENT_SECRET } = requireEnv(NAVER_REQUIRED_ENV, env);
-  const endpoint = "/v1/search/news.json";
+  const endpoint = "/search/v1/news";
 
   return gatewayCall(deps, {
     provider: "naver",
@@ -56,14 +62,14 @@ export async function fetchNaverNews(
     requestsPerSecond: REQUESTS_PER_SECOND,
     schema: naverNewsResponseSchema,
     fetcher: async () => {
-      const url = new URL(`https://openapi.naver.com${endpoint}`);
+      const url = new URL(`https://naverapihub.apigw.ntruss.com${endpoint}`);
       url.searchParams.set("query", params.query);
       url.searchParams.set("display", String(params.display ?? 20));
       url.searchParams.set("sort", params.sort ?? "date");
       const response = await fetch(url, {
         headers: {
-          "X-Naver-Client-Id": NAVER_CLIENT_ID,
-          "X-Naver-Client-Secret": NAVER_CLIENT_SECRET,
+          "X-NCP-APIGW-API-KEY-ID": NAVER_CLIENT_ID,
+          "X-NCP-APIGW-API-KEY": NAVER_CLIENT_SECRET,
         },
       });
       const body = await response.json().catch(() => null);

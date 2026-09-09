@@ -41,7 +41,7 @@ import {
 } from "@/lib/providers/gemini";
 import { createDefaultGatewayDeps, type GatewayDeps } from "@/lib/providers/gateway";
 import { fetchDartDisclosures } from "@/lib/providers/dart";
-import { fetchEcosStatistic } from "@/lib/providers/ecos";
+import { fetchLatestBaseRate, fetchLatestUsdKrwRate } from "@/lib/providers/ecos";
 import { fetchFinnhubCompanyNews, fetchFinnhubQuote } from "@/lib/providers/finnhub";
 import { fetchFmpProfile } from "@/lib/providers/fmp";
 import { fetchKrxEtfDailyTrades, fetchKrxStockDailyTrades, findKrxClose, type KrxDailyResponse } from "@/lib/providers/krx";
@@ -642,19 +642,15 @@ async function defaultFetchProviderData(
   };
 
   // Macro context (ECOS) -- once per job, not per holding.
-  // TODO(verify): confirm the exact ECOS stat/item codes against the live
-  // catalog; 722Y001 (base rate) and 0101000 (KRW/USD item) are the commonly
-  // documented codes but were not independently verified for this build.
+  // Stat/item codes (722Y001/0101000 base rate, 731Y001/0000001 USD/KRW)
+  // confirmed correct against ECOS's own StatisticItemList catalog
+  // (2026-09-10). The failure mode was requesting the current, not-yet-
+  // published month/day — fetchLatestBaseRate/fetchLatestUsdKrwRate walk
+  // backwards to the most recently published period instead.
   const macro: BriefingMacroInput = {};
   try {
     const monthCompact = today.slice(0, 7).replace("-", "");
-    const baseRateResult = await fetchEcosStatistic(gatewayDeps, {
-      statCode: "722Y001",
-      cycle: "M",
-      startDate: monthCompact,
-      endDate: monthCompact,
-      itemCode1: "0101000",
-    });
+    const baseRateResult = await fetchLatestBaseRate(gatewayDeps, monthCompact);
     if (baseRateResult.ok && baseRateResult.data) {
       const row = baseRateResult.data.StatisticSearch.row[0];
       if (row) {
@@ -674,24 +670,17 @@ async function defaultFetchProviderData(
     degradedSources.add("ecos");
   }
 
-  // TODO(verify): USD/KRW ECOS stat/item code — 0000001 is a placeholder for
-  // the FX table's item code and was not independently verified.
   try {
     const dayCompact = today.replace(/-/g, "");
-    const fxResult = await fetchEcosStatistic(gatewayDeps, {
-      statCode: "731Y001",
-      cycle: "D",
-      startDate: dayCompact,
-      endDate: dayCompact,
-      itemCode1: "0000001",
-    });
+    const fxResult = await fetchLatestUsdKrwRate(gatewayDeps, dayCompact);
     if (fxResult.ok && fxResult.data) {
       const row = fxResult.data.StatisticSearch.row[0];
       if (row) {
         macro.usdKrw = row.DATA_VALUE;
+        const rateDate = `${row.TIME.slice(0, 4)}-${row.TIME.slice(4, 6)}-${row.TIME.slice(6, 8)}`;
         await upsertFxRateDaily({
           pair: "USDKRW",
-          rateDate: today,
+          rateDate,
           rate: row.DATA_VALUE,
           source: "ecos",
         });

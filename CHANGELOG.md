@@ -22,6 +22,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Migrated hosting from Vercel to a self-managed Oracle Cloud Always Free VM
   (Nginx + Let's Encrypt + PM2 + system cron), replacing `vercel.json`
   (ADR-0006).
+- Naver news search migrated to NAVER API HUB (new host, path, and auth
+  header names); FMP moved off its retired `/api/v3/` endpoints to
+  `/stable/profile`.
+
+### Fixed
+
+- ECOS base rate and USD/KRW lookups no longer request the current,
+  not-yet-published month/day — they fall back to the most recently
+  published period, matching the same fix already applied to KRX.
 
 ### Fixed
 

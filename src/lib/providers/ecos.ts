@@ -47,6 +47,23 @@ export interface EcosStatisticSearchParams {
   itemCode1: string;
 }
 
+function shiftYyyyMmDd(date: string, days: number): string {
+  const y = Number(date.slice(0, 4));
+  const m = Number(date.slice(4, 6));
+  const d = Number(date.slice(6, 8));
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return dt.toISOString().slice(0, 10).replace(/-/g, "");
+}
+
+function shiftYyyyMm(date: string, months: number): string {
+  const y = Number(date.slice(0, 4));
+  const m = Number(date.slice(4, 6));
+  const dt = new Date(Date.UTC(y, m - 1, 1));
+  dt.setUTCMonth(dt.getUTCMonth() + months);
+  return `${dt.getUTCFullYear()}${String(dt.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
 export async function fetchEcosStatistic(
   deps: GatewayDeps,
   params: EcosStatisticSearchParams,
@@ -82,4 +99,53 @@ export async function fetchEcosStatistic(
       return { status: response.status, body };
     },
   });
+}
+
+const MAX_LOOKBACK = 5;
+
+/** Base rate (722Y001, item 0101000 — confirmed correct against ECOS's own
+ * catalog, 2026-09-10) as of the most recently PUBLISHED month. The current
+ * in-progress month has no row yet (confirmed empirically), so this walks
+ * backwards (bounded) rather than assuming `referenceMonth` itself is ready. */
+export async function fetchLatestBaseRate(
+  deps: GatewayDeps,
+  referenceMonth: string, // YYYYMM
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<GatewayResult<EcosResponse>> {
+  let month = referenceMonth;
+  let last: GatewayResult<EcosResponse> = { ok: false, error: "no attempts made", fromCache: false };
+  for (let i = 0; i <= MAX_LOOKBACK; i++) {
+    last = await fetchEcosStatistic(
+      deps,
+      { statCode: "722Y001", cycle: "M", startDate: month, endDate: month, itemCode1: "0101000" },
+      env,
+    );
+    if (last.ok && last.data && last.data.StatisticSearch.row.length > 0) return last;
+    month = shiftYyyyMm(month, -1);
+  }
+  return last;
+}
+
+/** USD/KRW base rate (731Y001, item 0000001 — confirmed correct against
+ * ECOS's own catalog, 2026-09-10) as of the most recently PUBLISHED trading
+ * day. Today's rate isn't published same-day (confirmed empirically), so
+ * this walks backwards (bounded, covers weekends) rather than assuming
+ * `referenceDay` itself is ready. */
+export async function fetchLatestUsdKrwRate(
+  deps: GatewayDeps,
+  referenceDay: string, // YYYYMMDD
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<GatewayResult<EcosResponse>> {
+  let day = referenceDay;
+  let last: GatewayResult<EcosResponse> = { ok: false, error: "no attempts made", fromCache: false };
+  for (let i = 0; i <= MAX_LOOKBACK; i++) {
+    last = await fetchEcosStatistic(
+      deps,
+      { statCode: "731Y001", cycle: "D", startDate: day, endDate: day, itemCode1: "0000001" },
+      env,
+    );
+    if (last.ok && last.data && last.data.StatisticSearch.row.length > 0) return last;
+    day = shiftYyyyMmDd(day, -1);
+  }
+  return last;
 }

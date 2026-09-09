@@ -2,9 +2,11 @@ import "server-only";
 
 /**
  * FMP (Financial Modeling Prep) client — US company fundamentals, slow-moving
- * (spec 0001 § Provider integration matrix). Endpoint shape matches FMP's
- * publicly documented `/api/v3/profile/{symbol}?apikey=...` REST API, which
- * returns an array with a single company profile object.
+ * (spec 0001 § Provider integration matrix). FMP retired its `/api/v3/`
+ * endpoints for non-legacy keys on 2025-08-31 (confirmed via live 403,
+ * 2026-09-10: "Legacy Endpoint ... only available for legacy users"); this
+ * now targets the current `/stable/profile?symbol=...&apikey=...` endpoint
+ * (query-param based, not path-based), confirmed working live.
  * Cadence/TTL: weekly, on demand for new tickers; 7d TTL.
  */
 import { z } from "zod";
@@ -20,8 +22,8 @@ const fmpProfileSchema = z.object({
   sector: z.string().optional(),
   industry: z.string().optional(),
   currency: z.string().optional(),
-  exchangeShortName: z.string().optional(),
-  mktCap: z.number().optional(),
+  exchange: z.string().optional(),
+  marketCap: z.number().optional(),
   description: z.string().optional(),
 });
 
@@ -35,7 +37,7 @@ export async function fetchFmpProfile(
   env: NodeJS.ProcessEnv = process.env,
 ): Promise<GatewayResult<FmpProfile[]>> {
   const { FMP_API_KEY } = requireEnv(FMP_REQUIRED_ENV, env);
-  const endpoint = `/api/v3/profile/${symbol}`;
+  const endpoint = "/stable/profile";
 
   return gatewayCall(deps, {
     provider: "fmp",
@@ -46,6 +48,7 @@ export async function fetchFmpProfile(
     schema: fmpProfileResponseSchema,
     fetcher: async () => {
       const url = new URL(`https://financialmodelingprep.com${endpoint}`);
+      url.searchParams.set("symbol", symbol);
       url.searchParams.set("apikey", FMP_API_KEY);
       const response = await fetch(url);
       const body = await response.json().catch(() => null);
