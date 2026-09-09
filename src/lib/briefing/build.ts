@@ -44,7 +44,7 @@ import { fetchDartDisclosures } from "@/lib/providers/dart";
 import { fetchEcosStatistic } from "@/lib/providers/ecos";
 import { fetchFinnhubCompanyNews, fetchFinnhubQuote } from "@/lib/providers/finnhub";
 import { fetchFmpProfile } from "@/lib/providers/fmp";
-import { fetchKrxDailyClose } from "@/lib/providers/krx";
+import { fetchKrxEtfDailyTrades, fetchKrxStockDailyTrades, findKrxClose, type KrxDailyResponse } from "@/lib/providers/krx";
 import { fetchNaverNews } from "@/lib/providers/naver";
 import { todayInSeoul } from "@/lib/dates";
 
@@ -703,24 +703,47 @@ async function defaultFetchProviderData(
     degradedSources.add("ecos");
   }
 
+  // KRX has no per-ticker query param — each product's OutBlock_1 is the
+  // WHOLE day's market, so fetch each product once for the whole portfolio
+  // rather than once per holding (see src/lib/providers/krx.ts). Two
+  // separate products because 유가증권 일별매매정보 (stock) doesn't cover
+  // ETF-listed securities; a holding may match either or neither.
+  let krxStockData: KrxDailyResponse | null = null;
+  let krxEtfData: KrxDailyResponse | null = null;
+  if (holdings.some((h) => h.market === "KRX")) {
+    try {
+      const stockResult = await fetchKrxStockDailyTrades(gatewayDeps, { tradeDate: today });
+      if (stockResult.ok && stockResult.data) krxStockData = stockResult.data;
+    } catch {
+      // a null result here just means the stock lookup below misses;
+      // the ETF product is tried independently.
+    }
+    try {
+      const etfResult = await fetchKrxEtfDailyTrades(gatewayDeps, { tradeDate: today });
+      if (etfResult.ok && etfResult.data) krxEtfData = etfResult.data;
+    } catch {
+      // see above
+    }
+  }
+
   for (const h of holdings) {
     const newsForSecurity: BriefingNewsInput[] = [];
 
     if (h.market === "KRX") {
-      try {
-        const priceResult = await fetchKrxDailyClose(gatewayDeps, { symbol: h.symbol, tradeDate: today });
-        if (priceResult.ok && priceResult.data) {
-          await upsertPriceDaily({
-            securityId: h.securityId,
-            tradeDate: today,
-            close: String(priceResult.data.tddClsprc),
-            currency: "KRW",
-            source: "krx",
-          });
-        } else {
-          degradedSources.add("krx");
-        }
-      } catch {
+      const krxMatch =
+        (krxStockData && findKrxClose(krxStockData, h.symbol)) ??
+        (krxEtfData && findKrxClose(krxEtfData, h.symbol)) ??
+        null;
+      if (krxMatch) {
+        await upsertPriceDaily({
+          securityId: h.securityId,
+          tradeDate: today,
+          close: krxMatch.close,
+          prevClose: krxMatch.prevClose,
+          currency: "KRW",
+          source: "krx",
+        });
+      } else {
         degradedSources.add("krx");
       }
 
