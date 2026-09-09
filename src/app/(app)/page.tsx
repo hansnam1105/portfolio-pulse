@@ -46,7 +46,11 @@ export default async function BriefingPage() {
   const todaysBriefing = briefingRows[0] ?? null;
   const lastJobRun = lastJobRuns[0] ?? null;
 
-  const hasSnapshot = portfolio.latestSnapshot !== null;
+  // Gate on whether there are any current holdings at all, not on whether a
+  // broker-export snapshot exists — ADR-0004 supports a portfolio built
+  // entirely from manual_transaction rows with zero snapshots, and that case
+  // must not be misreported as "no portfolio uploaded yet".
+  const hasSnapshot = portfolio.rows.length > 0;
   const asOfLabel = portfolio.latestSnapshot ? formatAsOfHeader(portfolio.latestSnapshot.asOfDate) : null;
 
   let items: {
