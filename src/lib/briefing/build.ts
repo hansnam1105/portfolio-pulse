@@ -737,7 +737,7 @@ async function defaultFetchProviderData(
       if (krxMatch) {
         await upsertPriceDaily({
           securityId: h.securityId,
-          tradeDate: today,
+          tradeDate: krxMatch.tradeDate,
           close: krxMatch.close,
           prevClose: krxMatch.prevClose,
           currency: "KRW",
