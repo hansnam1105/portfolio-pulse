@@ -126,6 +126,29 @@ export async function fetchLatestBaseRate(
   return last;
 }
 
+/** Consumer price index (901Y009, item 0 "총지수" — confirmed correct
+ * against ECOS's own catalog, 2026-09-10). Monthly, and like the base rate
+ * the current in-progress month isn't published yet, so this walks
+ * backwards. */
+export async function fetchLatestCpi(
+  deps: GatewayDeps,
+  referenceMonth: string, // YYYYMM
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<GatewayResult<EcosResponse>> {
+  let month = referenceMonth;
+  let last: GatewayResult<EcosResponse> = { ok: false, error: "no attempts made", fromCache: false };
+  for (let i = 0; i <= MAX_LOOKBACK; i++) {
+    last = await fetchEcosStatistic(
+      deps,
+      { statCode: "901Y009", cycle: "M", startDate: month, endDate: month, itemCode1: "0" },
+      env,
+    );
+    if (last.ok && last.data && last.data.StatisticSearch.row.length > 0) return last;
+    month = shiftYyyyMm(month, -1);
+  }
+  return last;
+}
+
 /** USD/KRW base rate (731Y001, item 0000001 — confirmed correct against
  * ECOS's own catalog, 2026-09-10) as of the most recently PUBLISHED trading
  * day. Today's rate isn't published same-day (confirmed empirically), so
