@@ -39,9 +39,9 @@ roles, no invite mechanism.
   own routes, or nothing can ever log in), `/api/jobs/*` (already guarded by its own bearer-token check
   — the cron caller has no browser session and a login redirect would break it), and `/api/health`
   (documented as deliberately secret-free).
-- **No custom sign-in page.** With a single provider and no styling requirement stated by the user,
-  Auth.js's built-in `/api/auth/signin` page is sufficient. Building one is deferred until it's
-  actually wanted.
+- **Sign-in page:** the implementation uses `/login` (`src/app/login/page.tsx`),
+  configured in `src/auth.ts`. This supersedes the original built-in-page-only
+  decision; the login route remains reachable without a session.
 - **Sign-out lives in `TabBar`**, the app's one piece of persistent global chrome, as a 5th control
   styled identically to the four nav tabs — not a new header (each screen already renders its own
   per-page `.appbar`; hoisting a shared header just for this would be new structure for one button).
