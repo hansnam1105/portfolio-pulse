@@ -28,6 +28,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { AmountVisibilityToggle } from "@/components/AmountVisibilityToggle";
 
 const TABS = [
   { href: "/", label: "브리핑", glyph: "◉" },
@@ -52,7 +53,12 @@ export function TabBar() {
           </Link>
         );
       })}
-      <button type="button" onClick={() => signOut({ callbackUrl: "/api/auth/signin" })}>
+      <AmountVisibilityToggle />
+      <button
+        type="button"
+        onClick={() => signOut({ callbackUrl: "/api/auth/signin" })}
+        aria-label="로그아웃"
+      >
         <span className="glyph" aria-hidden="true">
           ⏻
         </span>

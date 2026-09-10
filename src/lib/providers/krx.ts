@@ -39,7 +39,7 @@ import "server-only";
  * under the date they actually apply to, not the originally-requested date.
  */
 import { z } from "zod";
-import { sub, toDecimal, toNumericString } from "@/lib/money";
+import { sub, toDecimal, toNumericString, type Decimal } from "@/lib/money";
 import { gatewayCall, requireEnv, type GatewayDeps, type GatewayResult } from "./gateway";
 
 export const KRX_REQUIRED_ENV = ["KRX_API_KEY"] as const;
@@ -147,19 +147,41 @@ export function fetchKrxEtfDailyTrades(
   return fetchLatestKrxDailyTrades(deps, "/svc/apis/etp/etf_bydd_trd", params.tradeDate, env);
 }
 
+/**
+ * KRX ships every field as a string and uses a blank (and occasionally "-")
+ * for "no figure" — a security that didn't trade that session, was halted, or
+ * wasn't listed yet. Feeding that straight to `toDecimal` throws
+ * `[DecimalError] Invalid argument`, which would abort the whole daily job for
+ * one untradeable holding, so parse defensively and report "no data" instead.
+ */
+function parseKrxNumber(raw: string): Decimal | null {
+  const trimmed = raw.trim().replace(/,/g, "");
+  if (trimmed === "" || !/^[+-]?\d+(\.\d+)?$/.test(trimmed)) return null;
+  return toDecimal(trimmed);
+}
+
 /** Looks up one security's close/prevClose by KRX 6-digit issue code from a
- * fetchKrxStockDailyTrades/fetchKrxEtfDailyTrades result. Returns null if
- * not present in that result's OutBlock_1. `tradeDate` on the return value is
- * the row's own BAS_DD (YYYY-MM-DD) — the date these figures actually apply
- * to, which may be earlier than what was originally requested. */
+ * fetchKrxStockDailyTrades/fetchKrxEtfDailyTrades result. Returns null when the
+ * code isn't in that result's OutBlock_1 or the row carries no usable close.
+ * `tradeDate` is the row's own BAS_DD (YYYY-MM-DD) — the date these figures
+ * actually apply to, which may be earlier than what was requested.
+ * `prevClose` is null when the day-over-day change field is blank. */
 export function findKrxClose(
   data: KrxDailyResponse,
   isuCd: string,
-): { close: string; prevClose: string; tradeDate: string } | null {
+): { close: string; prevClose: string | null; tradeDate: string } | null {
   const row = data.OutBlock_1.find((r) => r.ISU_CD === isuCd);
   if (!row) return null;
-  const close = toDecimal(row.TDD_CLSPRC);
-  const prevClose = sub(close, toDecimal(row.CMPPREVDD_PRC));
+
+  const close = parseKrxNumber(row.TDD_CLSPRC);
+  if (close === null) return null;
+
+  const change = parseKrxNumber(row.CMPPREVDD_PRC);
+  const prevClose = change === null ? null : sub(close, change);
   const tradeDate = `${row.BAS_DD.slice(0, 4)}-${row.BAS_DD.slice(4, 6)}-${row.BAS_DD.slice(6, 8)}`;
-  return { close: toNumericString(close), prevClose: toNumericString(prevClose), tradeDate };
+  return {
+    close: toNumericString(close),
+    prevClose: prevClose === null ? null : toNumericString(prevClose),
+    tradeDate,
+  };
 }
