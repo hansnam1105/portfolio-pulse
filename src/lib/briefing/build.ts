@@ -41,7 +41,7 @@ import {
 } from "@/lib/providers/gemini";
 import { createDefaultGatewayDeps, type GatewayDeps } from "@/lib/providers/gateway";
 import { fetchDartDisclosures } from "@/lib/providers/dart";
-import { fetchEcosStatistic } from "@/lib/providers/ecos";
+import { fetchLatestBaseRate, fetchLatestCpi, fetchLatestUsdKrwRate } from "@/lib/providers/ecos";
 import { fetchFinnhubCompanyNews, fetchFinnhubQuote } from "@/lib/providers/finnhub";
 import { fetchFmpProfile } from "@/lib/providers/fmp";
 import { fetchKrxEtfDailyTrades, fetchKrxStockDailyTrades, findKrxClose, type KrxDailyResponse } from "@/lib/providers/krx";
@@ -436,6 +436,9 @@ async function defaultLoadCurrentHoldings(): Promise<HoldingForJob[]> {
       .map((t) => t.securityId),
   ]);
 
+  // Loaded once for all securities rather than per-security inside the loop.
+  const allPriceRows = securityIdsWithActivity.size > 0 ? await db.select().from(priceDaily) : [];
+
   const result: HoldingForJob[] = [];
   for (const securityId of securityIdsWithActivity) {
     const sec = allSecurities.find((s) => s.id === securityId);
@@ -456,18 +459,16 @@ async function defaultLoadCurrentHoldings(): Promise<HoldingForJob[]> {
         supersededBySnapshotId: t.supersededBySnapshotId,
       }));
 
-    let priceAtAsOfDate: string | null = null;
-    let latestClose: string | null = null;
-    if (latestSnapshot) {
-      const priceRows = await db
-        .select()
-        .from(priceDaily)
-        .where(eq(priceDaily.securityId, securityId));
-      const asOfRow = priceRows.find((p) => p.tradeDate === latestSnapshot.asOfDate);
-      priceAtAsOfDate = asOfRow?.close ?? null;
-      const latestRow = priceRows.sort((a, b) => (a.tradeDate < b.tradeDate ? 1 : -1))[0];
-      latestClose = latestRow?.close ?? null;
-    }
+    // `priceAtAsOfDate` is meaningless without a snapshot, but `latestClose`
+    // is not — a portfolio built entirely from manual transactions (ADR-0004,
+    // no snapshot) still has prices, and gating both on `latestSnapshot` made
+    // every holding reach the prompt as "unavailable".
+    const priceRows = allPriceRows.filter((p) => p.securityId === securityId);
+    const priceAtAsOfDate = latestSnapshot
+      ? (priceRows.find((p) => p.tradeDate === latestSnapshot.asOfDate)?.close ?? null)
+      : null;
+    const latestClose =
+      [...priceRows].sort((a, b) => (a.tradeDate < b.tradeDate ? 1 : -1))[0]?.close ?? null;
 
     result.push({
       securityId,
@@ -642,19 +643,15 @@ async function defaultFetchProviderData(
   };
 
   // Macro context (ECOS) -- once per job, not per holding.
-  // TODO(verify): confirm the exact ECOS stat/item codes against the live
-  // catalog; 722Y001 (base rate) and 0101000 (KRW/USD item) are the commonly
-  // documented codes but were not independently verified for this build.
+  // Stat/item codes (722Y001/0101000 base rate, 731Y001/0000001 USD/KRW)
+  // confirmed correct against ECOS's own StatisticItemList catalog
+  // (2026-09-10). The failure mode was requesting the current, not-yet-
+  // published month/day — fetchLatestBaseRate/fetchLatestUsdKrwRate walk
+  // backwards to the most recently published period instead.
   const macro: BriefingMacroInput = {};
   try {
     const monthCompact = today.slice(0, 7).replace("-", "");
-    const baseRateResult = await fetchEcosStatistic(gatewayDeps, {
-      statCode: "722Y001",
-      cycle: "M",
-      startDate: monthCompact,
-      endDate: monthCompact,
-      itemCode1: "0101000",
-    });
+    const baseRateResult = await fetchLatestBaseRate(gatewayDeps, monthCompact);
     if (baseRateResult.ok && baseRateResult.data) {
       const row = baseRateResult.data.StatisticSearch.row[0];
       if (row) {
@@ -674,24 +671,39 @@ async function defaultFetchProviderData(
     degradedSources.add("ecos");
   }
 
-  // TODO(verify): USD/KRW ECOS stat/item code — 0000001 is a placeholder for
-  // the FX table's item code and was not independently verified.
+  try {
+    const monthCompact = today.slice(0, 7).replace("-", "");
+    const cpiResult = await fetchLatestCpi(gatewayDeps, monthCompact);
+    if (cpiResult.ok && cpiResult.data) {
+      const row = cpiResult.data.StatisticSearch.row[0];
+      if (row) {
+        macro.cpi = row.DATA_VALUE;
+        await upsertMacroObservation({
+          seriesCode: row.STAT_CODE,
+          obsDate: today,
+          value: row.DATA_VALUE,
+          unit: row.UNIT_NAME,
+          source: "ecos",
+        });
+      }
+    } else {
+      degradedSources.add("ecos");
+    }
+  } catch {
+    degradedSources.add("ecos");
+  }
+
   try {
     const dayCompact = today.replace(/-/g, "");
-    const fxResult = await fetchEcosStatistic(gatewayDeps, {
-      statCode: "731Y001",
-      cycle: "D",
-      startDate: dayCompact,
-      endDate: dayCompact,
-      itemCode1: "0000001",
-    });
+    const fxResult = await fetchLatestUsdKrwRate(gatewayDeps, dayCompact);
     if (fxResult.ok && fxResult.data) {
       const row = fxResult.data.StatisticSearch.row[0];
       if (row) {
         macro.usdKrw = row.DATA_VALUE;
+        const rateDate = `${row.TIME.slice(0, 4)}-${row.TIME.slice(4, 6)}-${row.TIME.slice(6, 8)}`;
         await upsertFxRateDaily({
           pair: "USDKRW",
-          rateDate: today,
+          rateDate,
           rate: row.DATA_VALUE,
           source: "ecos",
         });

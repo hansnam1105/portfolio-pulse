@@ -10,6 +10,7 @@ import { PLFigure } from "@/components/PLFigure";
 import { StaleBanner } from "@/components/StaleBanner";
 import { Disclaimer } from "@/components/Disclaimer";
 import { EmptyState } from "@/components/StateViews";
+import { ProseMd } from "@/components/ProseMd";
 
 /**
  * Today's Briefing — `/` (spec 0002 §3.1).
@@ -120,14 +121,7 @@ export default async function BriefingPage() {
             <h2 className="section">간밤 시장 요약</h2>
             <div className="card">
               {todaysBriefing?.overviewMd ? (
-                todaysBriefing.overviewMd
-                  .split(/\n+/)
-                  .filter((line) => line.trim().length > 0)
-                  .map((line, i) => (
-                    <p className="prose" lang="ko" key={i}>
-                      {line}
-                    </p>
-                  ))
+                <ProseMd md={todaysBriefing.overviewMd} />
               ) : (
                 <p className="prose" lang="ko">
                   {lastJobRun
@@ -174,9 +168,7 @@ export default async function BriefingPage() {
                           </span>
                         )}
                       </div>
-                      <p className="prose" lang="ko">
-                        {item.bodyMd}
-                      </p>
+                      <ProseMd md={item.bodyMd} />
                       {(newsCount > 0 || discCount > 0) && (
                         <Link className="brief-card__links" href={`/holdings/${item.securityId}`}>
                           ▸ {newsCount > 0 && `관련 뉴스 ${newsCount}건`}

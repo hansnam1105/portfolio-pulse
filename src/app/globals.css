@@ -319,6 +319,12 @@ h2.section .count {
 .prose + .prose {
   margin-top: var(--space-sm);
 }
+.prose--list {
+  padding-left: 1.15em;
+}
+.prose--list li + li {
+  margin-top: var(--space-xs);
+}
 
 .brief-card__head {
   display: flex;
