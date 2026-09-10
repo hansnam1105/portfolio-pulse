@@ -1,5 +1,49 @@
 # 0001 — portfolio-pulse System Design
 
+## Current baseline — v4, 2026-09-11
+
+This section supersedes the authentication, hosting, environment, and acceptance
+requirements in the historical v3 plan below. It records the implemented baseline
+at master `90bb992` (PR #3), not a new implementation proposal.
+
+- **Authentication:** Google OAuth through Auth.js, JWT sessions, and exactly one
+  allowed email (`ALLOWED_GOOGLE_EMAIL`). An unset allowlist denies sign-in.
+  The implementation includes `src/auth.ts`, `src/middleware.ts`, `/login`, and
+  `/api/auth/[...nextauth]`. Pages and application APIs require a session;
+  `/login` and authentication routes permit sign-in, `/api/health` is public,
+  and the daily job uses its own `CRON_SECRET` bearer check.
+- **Hosting:** Oracle Cloud VM with Nginx, Let's Encrypt, PM2, and system cron.
+  Next.js, TypeScript, Drizzle, and Neon Postgres remain in use. Vercel deployment
+  and cron instructions below are historical and must not be used for deployment.
+- **Environment:** `.env.sample` is the current variable contract. Auth requires
+  `AUTH_SECRET`, `CLIENT_ID`, `CLIENT_PASSWORD`, and `ALLOWED_GOOGLE_EMAIL`;
+  `AUTH_URL` identifies the production base URL. Provider secrets remain server-only.
+  The former acceptance criterion requiring no auth surface is withdrawn.
+- **Operational confirmation:** the user confirmed KRX lookup/date handling,
+  briefing empty-state behavior, the cron script, and ECOS retrieval work in
+  production. Gemini default-model verification is explicitly skipped.
+- **PR #3:** provider endpoint fixes for ECOS/Naver/FMP, briefing data refresh,
+  and markdown rendering are merged. Merge confirmation is not a separate
+  production verification of every changed provider.
+- **Monitoring:** user screenshots confirm an Up HTTP monitor in UptimeRobot,
+  an Active Discord integration, and a contact-added message delivered to Discord.
+  Discord replaces email; the user confirmed email alerts are disabled.
+  Monitor-specific routing and down/recovery delivery
+  remain unverified. The existing `/api/health` endpoint supplies metadata but
+  does not itself send alerts or classify failed jobs as HTTP failures. Follow-up
+  requirements and pending decisions are in [the monitoring plan](../monitoring-plan.md).
+
+Current acceptance requirements: the allowed Google account can sign in; other
+accounts cannot; anonymous application requests reach login; the cron endpoint
+rejects invalid bearer tokens; the public health response contains no secrets.
+Oracle deployment must serve the application through HTTPS and invoke the job
+through system cron. These are requirements, not newly executed test results.
+
+Authoritative decisions: [ADR-0005](../adr/0005-google-oauth-single-user-access.md)
+and [ADR-0006](../adr/0006-self-hosted-oracle-cloud-deployment.md).
+
+## Historical implementation plan — v3 (superseded where noted above)
+
 - **Version**: 3 (application-level authentication removed per explicit user decision)
 - **Status**: Proposed — v3 (auth removed per user decision), awaiting final approval before
   code-writer.

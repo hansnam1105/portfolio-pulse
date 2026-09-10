@@ -10,8 +10,10 @@
   [ADR-0004](../adr/0004-manual-holding-adjustments.md), [`docs/design.md`](../design.md), `tokens.json`
 - **Scope**: 4 of the 6 screens — `/`, `/portfolio`, `/holdings/[id]`, `/transactions`.
   `/upload` and `/settings` are **deferred to the next design round** (Open Question OQ-1).
-- **Not in scope**: no login, no session, no account UI anywhere — spec v3 removed application-level
-  authentication entirely.
+- **Authentication update (2026-09-11)**: Google login and JWT sessions are implemented
+  under ADR-0005 and system spec v4. `/login` is the sign-in page and the tab bar
+  provides sign-out. The original alpha below does not specify the login design;
+  its former no-auth assumption is superseded.
 
 ---
 
