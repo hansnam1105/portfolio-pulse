@@ -2,6 +2,11 @@
 
 # Portfolio Pulse
 
+> **Project closed — PoC concluded on 2026-10-01.** Active development and the
+> hosted service have ended. Scheduled jobs and uptime monitoring are paused.
+> Source code and existing data are retained for reference. See the
+> [closure record](docs/service-pause.md).
+
 A personal, single-user, mobile-optimized web app for tracking a combined
 Korean (KRX) and US stock portfolio, with a daily Gemini-generated news
 briefing summarizing what moved your holdings overnight. Built for

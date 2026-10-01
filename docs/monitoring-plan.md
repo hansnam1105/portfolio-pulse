@@ -1,5 +1,9 @@
 # Operational monitoring follow-up
 
+> **Closed on 2026-10-01:** the PoC has concluded. The service is stopped and
+> its UptimeRobot monitor is paused. The pending work below is historical and
+> is no longer active. See the [closure record](service-pause.md).
+
 Status: external monitor and Discord integration configured by the user;
 monitor-specific alert routing and down/recovery delivery remain unverified.
 Updated 2026-09-11. Discord replaces the earlier email alert choice;

@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [PoC Closure] - 2026-10-01
+
+### Changed
+
+- Closed the project after concluding the proof of concept; active development
+  and hosted service operation have ended.
+- Stopped the application, web server, scheduled briefings, and automatic
+  startup; paused UptimeRobot monitoring and outage alerts.
+- Retained source code and existing data. The Oracle VM remains running;
+  cloud resources and subscriptions have not been terminated.
+
+## PoC development history
+
 ### Added
 
 - Initial implementation of Portfolio Pulse: schema, server-side provider
