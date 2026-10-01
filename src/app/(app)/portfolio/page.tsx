@@ -1,13 +1,18 @@
 import Link from "next/link";
 import { getCurrentPortfolio, type PortfolioHoldingRow } from "@/lib/holdings/list";
+import { buildCloseSeries, percentChangeOverSeries, tradeDateAxis, type SeriesPoint } from "@/lib/holdings/history";
 import { add, divSafe, mul, sub, Decimal, ZERO } from "@/lib/money";
-import { formatMoneyAbs, formatMoneyAbsSpaced, formatPercentAbs } from "@/lib/format";
+import { directionOf, formatMoneyAbs, formatMoneyAbsSpaced, formatPercentAbs, formatPercentSigned } from "@/lib/format";
 import { PLFigure } from "@/components/PLFigure";
 import { Badge } from "@/components/Badge";
 import { SegmentedFilter } from "@/components/SegmentedFilter";
 import { EmptyState } from "@/components/StateViews";
+import { ValueSparkline } from "@/components/ValueSparkline";
 
 type MarketFilter = "all" | "kr" | "us";
+
+/** Trading days shown in the row sparklines — matches the backfill window. */
+const CHART_WINDOW_DAYS = 90;
 
 // Never statically prerendered — current_holding reflects live DB state.
 export const dynamic = "force-dynamic";
@@ -29,6 +34,16 @@ export default async function PortfolioPage({
   });
   const krRows = portfolio.rows.filter((r) => r.security.market === "KRX");
   const usRows = portfolio.rows.filter((r) => r.security.market === "US");
+
+  // Shared axis; each row's series is carried forward onto it so KRX and US
+  // holdings line up despite their different trading calendars.
+  const dates = tradeDateAxis(portfolio.priceRows, CHART_WINDOW_DAYS);
+  const historyBySecurityId = new Map<number, SeriesPoint[]>(
+    portfolio.rows.map((r) => [
+      r.security.securityId,
+      buildCloseSeries(portfolio.priceRows, r.security.securityId, dates),
+    ]),
+  );
 
   return (
     <>
@@ -68,10 +83,10 @@ export default async function PortfolioPage({
             />
 
             {(filter === "all" || filter === "kr") && krRows.length > 0 && (
-              <MarketGroup title="국내 (KRX)" caption="국내 보유 종목" rows={filter === "all" ? krRows : visibleRows} currency="KRW" />
+              <MarketGroup title="국내 (KRX)" caption="국내 보유 종목" rows={filter === "all" ? krRows : visibleRows} currency="KRW" historyBySecurityId={historyBySecurityId} />
             )}
             {(filter === "all" || filter === "us") && usRows.length > 0 && (
-              <MarketGroup title="해외 (US)" caption="해외 보유 종목" rows={filter === "all" ? usRows : visibleRows} currency="USD" />
+              <MarketGroup title="해외 (US)" caption="해외 보유 종목" rows={filter === "all" ? usRows : visibleRows} currency="USD" historyBySecurityId={historyBySecurityId} />
             )}
             {visibleRows.length === 0 && (
               <EmptyState title="해당 시장에 보유 종목이 없습니다" />
@@ -98,12 +113,14 @@ function TotalCard({ portfolio }: { portfolio: Awaited<ReturnType<typeof getCurr
       <div className="hero__label">
         총 평가금액 <span style={{ fontWeight: 400 }}>(KRW 환산)</span>
       </div>
-      <div className="hero__value">{formatMoneyAbsSpaced(portfolio.totalValueKrw, "KRW")}</div>
+      <div className="hero__value money">{formatMoneyAbsSpaced(portfolio.totalValueKrw, "KRW")}</div>
       <div className="divider" />
       <dl style={{ margin: 0 }}>
         <div className="kv">
           <dt>매수금액</dt>
-          <dd>{formatMoneyAbs(portfolio.totalCostBasisKrw, "KRW")}</dd>
+          <dd>
+            <span className="money">{formatMoneyAbs(portfolio.totalCostBasisKrw, "KRW")}</span>
+          </dd>
         </div>
         <div className="kv">
           <dt>평가손익</dt>
@@ -134,11 +151,13 @@ function MarketGroup({
   caption,
   rows,
   currency,
+  historyBySecurityId,
 }: {
   title: string;
   caption: string;
   rows: PortfolioHoldingRow[];
   currency: "KRW" | "USD";
+  historyBySecurityId: Map<number, SeriesPoint[]>;
 }) {
   const subtotal = rows.reduce((sum, r) => {
     if (r.result.status === "ok" && r.result.valueCurrent !== null) return add(sum, r.result.valueCurrent);
@@ -150,7 +169,7 @@ function MarketGroup({
     <>
       <div className="group-head">
         <span>{title}</span>
-        <span className="subtotal">{formatMoneyAbs(subtotal, currency)}</span>
+        <span className="subtotal money">{formatMoneyAbs(subtotal, currency)}</span>
       </div>
       <table className="holdings">
         <caption>{caption}</caption>
@@ -163,7 +182,7 @@ function MarketGroup({
         </thead>
         <tbody>
           {rows.map((row) => (
-            <HoldingRow key={row.security.securityId} row={row} />
+            <HoldingRow key={row.security.securityId} row={row} history={historyBySecurityId.get(row.security.securityId) ?? []} />
           ))}
         </tbody>
       </table>
@@ -171,13 +190,18 @@ function MarketGroup({
   );
 }
 
-function HoldingRow({ row }: { row: PortfolioHoldingRow }) {
+function HoldingRow({ row, history }: { row: PortfolioHoldingRow; history: SeriesPoint[] }) {
   const { security, result } = row;
   const isUs = security.market === "US";
   const nameNode = isUs ? <span lang="en">{security.symbol}</span> : security.nameLocal;
 
   const noValue =
     (result.status === "ok" && (result.valueCurrent === null || result.valueCurrent.isZero())) || false;
+
+  // Quantity is constant across the window, so the holding's value change rate
+  // is exactly its price change rate — no need to re-value per date here.
+  const changePct = percentChangeOverSeries(history);
+  const sparkPoints = history.map((p) => ({ tradeDate: p.tradeDate, close: p.value.toNumber() }));
 
   return (
     <tr>
@@ -195,10 +219,25 @@ function HoldingRow({ row }: { row: PortfolioHoldingRow }) {
               {noValue ? " · 비중 계산 제외" : row.weightPct ? ` · 비중 ${formatPercentAbs(row.weightPct)}%` : ""}
             </span>
           </span>
+          {changePct !== null && (
+            <span className="row__spark">
+              <ValueSparkline
+                points={sparkPoints}
+                direction={directionOf(changePct)}
+                className="spark--row"
+                width={72}
+                height={34}
+                ariaLabel={`최근 ${history.length}거래일 ${formatPercentSigned(changePct)}% 변화`}
+              />
+              <span className={`row__spark-pct pl--${directionOf(changePct)}`}>
+                {formatPercentSigned(changePct)}%
+              </span>
+            </span>
+          )}
           <span className="row__fig">
             {result.status === "ok" && !noValue && result.valueCurrent !== null && (
               <>
-                <span className="row__value">{formatMoneyAbs(result.valueCurrent, security.currency)}</span>
+                <span className="row__value money">{formatMoneyAbs(result.valueCurrent, security.currency)}</span>
                 {!result.costBasis.isZero() && (() => {
                   const plAmount = sub(result.valueCurrent, result.costBasis);
                   return (
@@ -213,13 +252,15 @@ function HoldingRow({ row }: { row: PortfolioHoldingRow }) {
             )}
             {result.status === "stale" && (
               <span className="row__value">
-                {formatMoneyAbs(result.frozenValue, security.currency)}
+                <span className="money">{formatMoneyAbs(result.frozenValue, security.currency)}</span>
                 <span className="row__krw">{result.asOfDate.slice(5)} 기준</span>
               </span>
             )}
             {noValue && <span className="row__value" style={{ color: "var(--color-text-muted)" }}>—</span>}
             {isUs && row.valueKrw && result.status !== "stale" && !noValue && (
-              <span className="row__krw">{formatMoneyAbs(row.valueKrw, "KRW")} 환산</span>
+              <span className="row__krw">
+                <span className="money">{formatMoneyAbs(row.valueKrw, "KRW")}</span> 환산
+              </span>
             )}
           </span>
         </Link>

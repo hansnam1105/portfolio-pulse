@@ -1,5 +1,6 @@
 "use client";
 
+
 /**
  * Client half of `/transactions` (spec 0002 §3.4): the log list's edit/void
  * actions and the add/edit bottom-sheet form. Reads its data from props
@@ -7,7 +8,7 @@
  * to the existing POST/PATCH /api/transactions + DELETE /api/transactions/[id]
  * routes directly — it never imports src/db or src/lib/providers.
  */
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/Badge";
 import {
@@ -33,7 +34,7 @@ export interface TxnRowView {
   securityLabel: string;
   isUsSecurity: boolean;
   kind: TransactionKind;
-  calcLine: string;
+  calcLine: ReactNode;
   transactionDate: string;
   status: "active" | "superseded" | "voided";
   supersededAsOfDate: string | null;
@@ -357,7 +358,7 @@ export function TransactionsClient({
             {(kind === "buy" || kind === "sell") && (
               <dl className="computed">
                 <dt>금액 (자동 계산)</dt>
-                <dd>{amount && selectedSecurity ? `${selectedSecurity.currency === "KRW" ? "₩" : "$"}${amount}` : "—"}</dd>
+                <dd>{amount && selectedSecurity ? <span className="money">{`${selectedSecurity.currency === "KRW" ? "₩" : "$"}${amount}`}</span> : "—"}</dd>
               </dl>
             )}
 

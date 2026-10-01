@@ -491,6 +491,26 @@ table.holdings tr:last-child td {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
+.row__spark {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.row__spark-pct {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+/* The list gets crowded on the narrowest phones; the value and P/L columns
+   matter more than the trend thumbnail, so it is the one that goes. */
+@media (max-width: 359px) {
+  .row__spark {
+    display: none;
+  }
+}
+
 .row__fig {
   text-align: right;
   flex: none;
@@ -613,6 +633,25 @@ table.holdings tr:last-child td {
 .spark path.area {
   fill: var(--color-value-up-bg);
   stroke: none;
+}
+/* Direction is never carried by colour alone — every chart that uses these is
+   accompanied by a signed percentage in text (WCAG 1.4.1). */
+.spark--down path.line {
+  stroke: var(--color-value-down);
+}
+.spark--down path.area {
+  fill: var(--color-value-down-bg);
+}
+.spark--flat path.line {
+  stroke: var(--color-value-flat);
+}
+.spark--flat path.area {
+  fill: transparent;
+}
+/* Compact variant for the per-row sparkline in the portfolio list. */
+.spark--row {
+  height: 34px;
+  width: 72px;
 }
 .spark-range {
   display: flex;
@@ -964,6 +1003,29 @@ table.holdings tr:last-child td {
   outline: var(--focus-ring);
   outline-offset: -2px;
 }
+/* ============================================================
+   Hide-amounts mode (AmountVisibilityToggle)
+   ============================================================ */
+/* Amounts stay in the DOM and in the accessibility tree — this guards against
+   someone reading the screen over your shoulder, not against the device's own
+   user. Percentages are deliberately untouched. */
+html[data-amounts-hidden] .money {
+  filter: blur(7px);
+  user-select: none;
+  /* Keeps a short blurred figure from collapsing to an illegibly small smudge
+     and hints that something is concealed rather than missing. */
+  min-width: 3.5ch;
+  display: inline-block;
+}
+@media (prefers-reduced-transparency: reduce) {
+  html[data-amounts-hidden] .money {
+    filter: none;
+    color: transparent;
+    background: var(--color-slate-200);
+    border-radius: var(--radius-sm);
+  }
+}
+
 .tabbar .glyph {
   font-size: 1.15rem;
   line-height: 1;

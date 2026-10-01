@@ -49,10 +49,16 @@ export interface CurrentPortfolio {
   rows: PortfolioHoldingRow[];
   totalValueKrw: Decimal;
   totalCostBasisKrw: Decimal;
+  /** Full price history for the held securities, and the USD/KRW history, as
+   * already loaded to compute the figures above. Exposed so the value charts
+   * (src/lib/holdings/history.ts) can be built without a second round trip —
+   * this query is unfiltered either way. */
+  priceRows: { securityId: number; tradeDate: string; close: string }[];
+  fxRows: { rateDate: string; rate: string }[];
 }
 
 export async function getCurrentPortfolio(): Promise<CurrentPortfolio> {
-  const [latestSnapshotRows, allSecurities, activeTransactions, latestFxRows] = await Promise.all([
+  const [latestSnapshotRows, allSecurities, activeTransactions, allFxRows] = await Promise.all([
     db
       .select()
       .from(portfolioSnapshot)
@@ -60,10 +66,12 @@ export async function getCurrentPortfolio(): Promise<CurrentPortfolio> {
       .limit(1),
     db.select().from(security),
     db.select().from(manualTransaction).where(isNull(manualTransaction.voidedAt)),
-    db.select().from(fxRateDaily).where(eq(fxRateDaily.pair, "USDKRW")).orderBy(desc(fxRateDaily.rateDate)).limit(1),
+    // Full history (tens of rows), not just the latest: the value chart needs a
+    // rate per date, and list.ts is the only place fx_rate_daily is read.
+    db.select().from(fxRateDaily).where(eq(fxRateDaily.pair, "USDKRW")).orderBy(desc(fxRateDaily.rateDate)),
   ]);
   const latestSnapshot = latestSnapshotRows[0] ?? null;
-  const fxRateRow = latestFxRows[0] ?? null;
+  const fxRateRow = allFxRows[0] ?? null;
 
   const holdingRows = latestSnapshot
     ? await db.select().from(holding).where(eq(holding.snapshotId, latestSnapshot.id))
@@ -169,6 +177,8 @@ export async function getCurrentPortfolio(): Promise<CurrentPortfolio> {
     rows: withWeights,
     totalValueKrw,
     totalCostBasisKrw,
+    priceRows: priceRows.map((p) => ({ securityId: p.securityId, tradeDate: p.tradeDate, close: p.close })),
+    fxRows: allFxRows.map((f) => ({ rateDate: f.rateDate, rate: f.rate })),
   };
 }
 

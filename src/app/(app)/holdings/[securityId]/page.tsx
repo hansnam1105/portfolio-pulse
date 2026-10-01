@@ -93,9 +93,12 @@ export default async function HoldingDetailPage({
                   </svg>
                   <div className="spark-range">
                     <span>
-                      {history.length}일 최저 {formatMoneyAbs(geometry.min, sec.currency)}
+                      {history.length}일 최저{" "}
+                      <span className="money">{formatMoneyAbs(geometry.min, sec.currency)}</span>
                     </span>
-                    <span>최고 {formatMoneyAbs(geometry.max, sec.currency)}</span>
+                    <span>
+                      최고 <span className="money">{formatMoneyAbs(geometry.max, sec.currency)}</span>
+                    </span>
                   </div>
                 </>
               ) : (
@@ -183,7 +186,7 @@ function PositionHeader({
     return (
       <div className="card hero">
         <div className="hero__label">평가금액</div>
-        <div className="hero__value">{formatMoneyAbs(result.frozenValue, sec.currency)}</div>
+        <div className="hero__value money">{formatMoneyAbs(result.frozenValue, sec.currency)}</div>
         <div className="meta" style={{ marginTop: "var(--space-sm)" }}>
           {sec.symbol} · {sec.market} · {result.asOfDate} 기준 (시세 지연)
         </div>
@@ -206,7 +209,7 @@ function PositionHeader({
   return (
     <div className="card hero">
       <div className="hero__label">평가금액</div>
-      <div className="hero__value">{value !== null ? formatMoneyAbs(value, sec.currency) : "—"}</div>
+      <div className="hero__value money">{value !== null ? formatMoneyAbs(value, sec.currency) : "—"}</div>
       {pl !== null && (
         <div className="hero__delta">
           <PLFigure amount={pl} currency={sec.currency} percent={plPct} />
@@ -253,7 +256,13 @@ function PositionFacts({
               <div className="kv">
                 <dt>평균 단가</dt>
                 <dd>
-                  {result.quantityCurrent.isZero() ? "—" : formatMoneyAbs(divSafe(result.costBasis, result.quantityCurrent) ?? toDecimal(0), sec.currency)}
+                  {result.quantityCurrent.isZero() ? (
+                    "—"
+                  ) : (
+                    <span className="money">
+                      {formatMoneyAbs(divSafe(result.costBasis, result.quantityCurrent) ?? toDecimal(0), sec.currency)}
+                    </span>
+                  )}
                   {result.quantityBasis === "estimated" && (
                     <span style={{ fontWeight: 600, color: "var(--color-text-muted)" }}> (추정)</span>
                   )}
@@ -270,13 +279,13 @@ function PositionFacts({
               </div>
               <div className="kv">
                 <dt>매수금액</dt>
-                <dd>{formatMoneyAbs(result.costBasis, sec.currency)}</dd>
+                <dd><span className="money">{formatMoneyAbs(result.costBasis, sec.currency)}</span></dd>
               </div>
             </>
           ) : (
             <div className="kv">
               <dt>평가금액 (시세 지연)</dt>
-              <dd>{formatMoneyAbs(result.frozenValue, sec.currency)}</dd>
+              <dd><span className="money">{formatMoneyAbs(result.frozenValue, sec.currency)}</span></dd>
             </div>
           )}
           <div className="kv">

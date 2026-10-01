@@ -39,7 +39,7 @@ export function PLFigure({ amount, currency, percent, amountHidden, className }:
       <span className="pl__arrow" aria-hidden="true">
         {directionArrow(direction)}
       </span>
-      {!amountHidden && <span className="pl__amount">{formatMoneySigned(amount, currency)}</span>}
+      {!amountHidden && <span className="pl__amount money">{formatMoneySigned(amount, currency)}</span>}
       {percent !== undefined && percent !== null && (
         <span className="pl__pct">({formatPercentSigned(percent)}%)</span>
       )}

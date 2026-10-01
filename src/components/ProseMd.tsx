@@ -12,12 +12,38 @@ import type { ReactNode } from "react";
  * safe failure mode — the previous behaviour rendered `**like this**`
  * verbatim for every emphasis the model used.
  */
+/**
+ * Currency-shaped tokens the briefing model writes into its prose — "793600
+ * KRW", "₩793,600", "$34.41". They can't be marked up at the render site like
+ * every other amount in the app because the model, not this codebase, decides
+ * where they appear, so the hide-amounts toggle would otherwise miss them
+ * entirely. This is a heuristic and it fails safe: an unmatched number simply
+ * stays visible, exactly as it does today.
+ */
+const CURRENCY_TOKEN =
+  /((?:[₩$]\s?\d[\d,]*(?:\.\d+)?)|(?:\d[\d,]*(?:\.\d+)?\s?(?:KRW|USD|원|달러)))/g;
+
+function renderMoney(text: string, keyPrefix: string): ReactNode[] {
+  // `split` on a regex with one capture group puts the captured tokens at the
+  // odd indices, so position alone identifies them. (Never `.test()` here — the
+  // `g` flag makes it stateful via lastIndex.)
+  return text.split(CURRENCY_TOKEN).map((segment, i) =>
+    i % 2 === 1 ? (
+      <span className="money" key={`${keyPrefix}-m${i}`}>
+        {segment}
+      </span>
+    ) : (
+      segment
+    ),
+  );
+}
+
 function renderInline(text: string): ReactNode[] {
   return text.split(/(\*\*[^*]+\*\*)/g).map((segment, i) =>
     segment.startsWith("**") && segment.endsWith("**") ? (
-      <strong key={i}>{segment.slice(2, -2)}</strong>
+      <strong key={i}>{renderMoney(segment.slice(2, -2), `b${i}`)}</strong>
     ) : (
-      segment
+      <span key={i}>{renderMoney(segment, `t${i}`)}</span>
     ),
   );
 }

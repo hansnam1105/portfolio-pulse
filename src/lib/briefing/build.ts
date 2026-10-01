@@ -642,6 +642,49 @@ async function defaultFetchProviderData(
     list.push(Object.assign(entry, { __newsItemId: id }));
   };
 
+  /**
+   * Korean-language news for one security. Used for KRX holdings (queried by
+   * 종목명) and for US holdings (queried by ticker): Finnhub's company-news
+   * endpoint covers companies but not ETFs, so US ETFs would otherwise have no
+   * news at all, while Korean media covers the popular ones heavily. Dedup is
+   * handled downstream — news_item.url_sha256 is unique and news_link upserts
+   * onConflictDoNothing — so overlapping coverage is safe.
+   */
+  const collectNaverNews = async (query: string, securityId: number, target: BriefingNewsInput[]) => {
+    try {
+      const naverResult = await fetchNaverNews(gatewayDeps, { query, display: 5 });
+      if (naverResult.ok && naverResult.data) {
+        for (const item of naverResult.data.items) {
+          const title = item.title.replace(/<\/?b>/g, "");
+          const summary = item.description.replace(/<\/?b>/g, "");
+          const id = await persistNewsItemAndLink({
+            kind: "news",
+            source: "naver",
+            url: item.originallink || item.link,
+            title,
+            summary,
+            lang: "ko",
+            publishedAt: item.pubDate,
+            raw: item,
+            securityId,
+          });
+          pushNews(target, id, {
+            newsKey: nextNewsKey(),
+            title,
+            summary,
+            lang: "ko",
+            source: "naver",
+            publishedAt: item.pubDate,
+          });
+        }
+      } else {
+        degradedSources.add("naver");
+      }
+    } catch {
+      degradedSources.add("naver");
+    }
+  };
+
   // Macro context (ECOS) -- once per job, not per holding.
   // Stat/item codes (722Y001/0101000 base rate, 731Y001/0000001 USD/KRW)
   // confirmed correct against ECOS's own StatisticItemList catalog
@@ -795,38 +838,7 @@ async function defaultFetchProviderData(
         }
       }
 
-      try {
-        const naverResult = await fetchNaverNews(gatewayDeps, { query: h.nameLocal, display: 5 });
-        if (naverResult.ok && naverResult.data) {
-          for (const item of naverResult.data.items) {
-            const title = item.title.replace(/<\/?b>/g, "");
-            const summary = item.description.replace(/<\/?b>/g, "");
-            const id = await persistNewsItemAndLink({
-              kind: "news",
-              source: "naver",
-              url: item.originallink || item.link,
-              title,
-              summary,
-              lang: "ko",
-              publishedAt: item.pubDate,
-              raw: item,
-              securityId: h.securityId,
-            });
-            pushNews(newsForSecurity, id, {
-              newsKey: nextNewsKey(),
-              title,
-              summary,
-              lang: "ko",
-              source: "naver",
-              publishedAt: item.pubDate,
-            });
-          }
-        } else {
-          degradedSources.add("naver");
-        }
-      } catch {
-        degradedSources.add("naver");
-      }
+      await collectNaverNews(h.nameLocal, h.securityId, newsForSecurity);
     } else {
       try {
         const quoteResult = await fetchFinnhubQuote(gatewayDeps, h.symbol);
@@ -877,6 +889,10 @@ async function defaultFetchProviderData(
       } catch {
         degradedSources.add("finnhub");
       }
+
+      // Finnhub's company-news covers companies but not ETFs, so US ETFs get
+      // nothing from it. Korean coverage of the popular ones is substantial.
+      await collectNaverNews(h.symbol, h.securityId, newsForSecurity);
 
       try {
         const profileResult = await fetchFmpProfile(gatewayDeps, h.symbol);

@@ -10,6 +10,8 @@ import { PLFigure } from "@/components/PLFigure";
 import { StaleBanner } from "@/components/StaleBanner";
 import { Disclaimer } from "@/components/Disclaimer";
 import { EmptyState } from "@/components/StateViews";
+import { PortfolioValueChart } from "@/components/PortfolioValueChart";
+import { buildPortfolioValueSeries, tradeDateAxis } from "@/lib/holdings/history";
 import { ProseMd } from "@/components/ProseMd";
 
 /**
@@ -28,6 +30,9 @@ import { ProseMd } from "@/components/ProseMd";
  */
 // Never statically prerendered — reads live DB state (today's briefing,
 // current holdings) that must be fresh on every request.
+/** Trading days shown in the value chart — matches the backfill window. */
+const CHART_WINDOW_DAYS = 90;
+
 export const dynamic = "force-dynamic";
 
 export default async function BriefingPage() {
@@ -43,6 +48,22 @@ export default async function BriefingPage() {
       .orderBy(desc(jobRun.runDate))
       .limit(1),
   ]);
+
+  // Constant-quantity backcast over the chart window (see history.ts): the
+  // ledger holds one synthetic buy per position, so a true replay would show
+  // zero until that date and then jump.
+  const valueSeries = buildPortfolioValueSeries({
+    holdings: portfolio.rows
+      .filter((r) => r.result.status === "ok")
+      .map((r) => ({
+        securityId: r.security.securityId,
+        currency: r.security.currency,
+        quantity: r.result.status === "ok" ? r.result.quantityCurrent : ZERO,
+      })),
+    priceRows: portfolio.priceRows,
+    fxRows: portfolio.fxRows,
+    dates: tradeDateAxis(portfolio.priceRows, CHART_WINDOW_DAYS),
+  });
 
   const todaysBriefing = briefingRows[0] ?? null;
   const lastJobRun = lastJobRuns[0] ?? null;
@@ -117,6 +138,8 @@ export default async function BriefingPage() {
               totalCostBasisKrw={portfolio.totalCostBasisKrw}
               rows={portfolio.rows}
             />
+
+            <PortfolioValueChart series={valueSeries} />
 
             <h2 className="section">간밤 시장 요약</h2>
             <div className="card">
@@ -214,7 +237,7 @@ function HeroSummary({
   return (
     <div className="card hero">
       <div className="hero__label">총 평가금액</div>
-      <div className="hero__value">{formatMoneyAbsSpaced(totalValueKrw, "KRW")}</div>
+      <div className="hero__value money">{formatMoneyAbsSpaced(totalValueKrw, "KRW")}</div>
       <div className="hero__delta">
         <PLFigure amount={pl} currency="KRW" percent={plPct} />
         <span className="cmp">매수 대비</span>

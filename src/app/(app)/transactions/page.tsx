@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { manualTransaction, portfolioSnapshot, security } from "@/db/schema";
@@ -51,12 +52,24 @@ export default async function TransactionsPage({
     const isUsSecurity = sec?.market === "US";
     const currency = sec?.currency ?? t.currency;
 
-    let calcLine: string;
+    // JSX rather than a plain string so the money parts can carry `.money` and
+    // be hidden by the amount-visibility toggle, while the share count stays
+    // readable. Server-built JSX passed to a client component is fine.
+    let calcLine: ReactNode;
     if (t.kind === "buy" || t.kind === "sell") {
       const amount = t.quantity && t.price ? mul(toDecimal(t.quantity), toDecimal(t.price)) : null;
-      calcLine = `${t.quantity ? formatQuantity(t.quantity) : "?"}주 × ${t.price ? formatMoneyAbs(t.price, currency) : "?"}${
-        amount ? ` = ${formatMoneyAbs(amount, currency)}` : ""
-      }`;
+      calcLine = (
+        <>
+          {t.quantity ? formatQuantity(t.quantity) : "?"}주 ×{" "}
+          {t.price ? <span className="money">{formatMoneyAbs(t.price, currency)}</span> : "?"}
+          {amount && (
+            <>
+              {" = "}
+              <span className="money">{formatMoneyAbs(amount, currency)}</span>
+            </>
+          )}
+        </>
+      );
     } else if (t.kind === "set_quantity") {
       calcLine = `수량을 ${t.quantity ? formatQuantity(t.quantity) : "?"}주로 지정`;
     } else {
